@@ -30,6 +30,9 @@ execute:
 ```{r}
 #| echo: false
 renv::use_python("/Users/simonebrazzi/venv/nlp/bin/python3")
+
+library("tidyverse")
+library("ggplot2")
 ```
 
 # Notes
@@ -45,5 +48,80 @@ Foundamental task for other tasks as classification or speech tagging.
 - Conditional probability -> Markov's chain to predict future word using previous ones.
 
 $$
-P(X_i | X_(i-1), ..., X_(i - (n - 1)))
+P(X_i | X_{i-1}, \ ...\ , X_{i - (n - 1)})
 $$
+Limits:
+- **curse of dimensionality**.
+- **OOV**, Out Of Vocabulary grams. There is the need for a gram for these OOV.
+
+Types:
+- 2-grams or bi-grams. 2 words for each.
+- 3-grams.
+
+It depends on the contest.
+
+The smaller the gram, the general it is, the higher the vocabulary dimension.
+
+The n-gram approach can avoid high dimensionality, meaning avoiding too many zeros in the vectors.
+
+# Import
+
+```{python}
+from nltk import ngrams
+import pandas as pd
+```
+
+# How to create the n-grams
+
+```{python}
+sentence = "Questa è una frase di prova in lingua italiana."
+n = 2 # n-grams
+
+ngrams_2 = ngrams(
+  sequence=sentence,
+  n=n
+  )
+```
+
+ngrams_2 is a zip file. It has to been iterated.
+
+```{python}
+[n for n in ngrams_2]
+```
+
+
+We can create an ngram of 10 charachters.
+```{python}
+ngram_ita = ngrams(sentence, 10)
+
+["".join(n) for n in ngram_ita]
+```
+
+Next step, we create a function which create a ngrammed dataset.
+
+```{python}
+def my_ngram(sentence, n):
+  
+  ngram_sentence = ngrams(sentence, n)
+  return ["".join(n) for n in ngram_sentence]
+```
+
+```{python}
+# test
+my_ngram("Ciao sono Simione", 2)
+```
+
+# Dataset
+
+```{python}
+df = pd.read_csv("~/R/profAI_nlp/datasets/Lezione_4-language_detection/dataset.csv")
+df.head()
+```
+
+```{python}
+df.language.value_counts()
+```
+
+
+
+
