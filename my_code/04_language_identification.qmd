@@ -1,0 +1,49 @@
+---
+author: "Simone Brazzi"
+title: "Language Identification"
+date: "2024-08-21"
+format:
+  html:
+    toc: true
+    toc-title: "Table of Contents"
+    toc-depth: 3
+    number-sections: true
+    number-depth: 3
+    embed-resources: true
+    anchor-sections: true
+    smooth-scroll: true
+    highlight-style: monokai
+    code-line-numbers: true
+    code-copy: true
+    code-link: true
+    theme:
+      dark: darkly
+      light: flatly
+  ipynb: default
+format-links: [ipynb]
+engine: knitr
+execute:
+  cache: true
+  freeze: true
+---
+
+```{r}
+#| echo: false
+renv::use_python("/Users/simonebrazzi/venv/nlp/bin/python3")
+```
+
+# Notes
+
+Foundamental task for other tasks as classification or speech tagging.
+
+## N-grams
+
+- It is an element of a sentence or word.
+- Useful for NLP, DNA sequence and protein sequence.
+- Predict word.
+- Generate text.
+- Conditional probability -> Markov's chain to predict future word using previous ones.
+
+$$
+P(X_i | X_(i-1), ..., X_(i - (n - 1)))
+$$

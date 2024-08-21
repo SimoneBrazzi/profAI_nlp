@@ -1,0 +1,200 @@
+---
+author: "Simone Brazzi"
+title: "Text Classification"
+date: "2024-08-20"
+format:
+  html:
+    toc: true
+    toc-title: "Table of Contents"
+    toc-depth: 3
+    number-sections: true
+    number-depth: 3
+    embed-resources: true
+    anchor-sections: true
+    smooth-scroll: true
+    highlight-style: monokai
+    code-line-numbers: true
+    code-copy: true
+    code-link: true
+    theme:
+      dark: darkly
+      light: flatly
+  ipynb: default
+format-links: [ipynb]
+engine: knitr
+execute:
+  cache: true
+  freeze: true
+---
+
+```{r}
+#| echo: false
+renv::use_python("/Users/simonebrazzi/venv/nlp/bin/python3")
+```
+
+# Import
+
+```{python}
+import pandas as pd
+import spacy
+import string
+from nltk.corpus import stopwords
+import re
+from sklearn.feature_extraction.text import TfidfVectorizer
+
+from sklearn.datasets import fetch_20newsgroups
+```
+
+# Dataset
+
+```{python}
+df_train = fetch_20newsgroups(subset="train")
+df_test = fetch_20newsgroups(subset="test")
+```
+
+```{python}
+ds_train = pd.DataFrame(
+  {
+    "data" : df_train.data,
+    "target" : df_train.target
+}
+)
+
+df_test = pd.DataFrame(
+  {
+    "data" : df_test.data,
+    "target" : df_test.target
+}
+) 
+```
+
+Now we can save the target names to test afterward the model performance.
+
+```{python}
+target_names = df_train.target_names
+target_names
+```
+
+Now we subset the labels to learning purpouse.
+
+```{python}
+ds_train_filtered = ds_train[ds_train.target.isin([3, 4])]
+
+ds_test_filtered = df_test[df_test.target.isin([3, 4])]
+```
+
+# EDA
+
+```{python}
+len(ds_train_filtered)
+ds_train_filtered.target.value_counts()
+```
+
+```{python}
+len(ds_test_filtered)
+ds_test_filtered.target.value_counts()
+```
+
+# Preprocessing
+
+We have to do **cleaning** and **vectorization**. We can use 2 functions:
+
+```{python}
+english_stopwords = stopwords.words("english")
+nlp = spacy.load("en_core_web_sm")
+punctuation = set(string.punctuation)
+
+def data_cleaner(df):
+  
+  df_to_return = []
+  for sentence in df:
+    sentence = sentence.lower()
+    for c in string.punctuation:
+      sentence = sentence.replace(c, " ")
+    document = nlp(sentence)
+    sentence = ' '.join(token.lemma_ for token in document)
+    sentence = ' '.join(word for word in sentence.split() if word not in english_stopwords)
+    sentence = re.sub("\d", "", sentence)
+    df_to_return.append(sentence)
+    
+  return df_to_return
+
+def bow_tfidf(df, tfidf_vectorizer):
+  
+  if tfidf_vectorizer == None:
+    tfidf_vectorizer = TfidfVectorizer()
+    X = tfidf_vectorizer.fit_transform(df)
+  else:
+    X = tfidf_vectorizer.transform(df)
+  
+  return X.toarray(), tfidf_vectorizer
+```
+
+The bow function return a set (vectorized array, vocabulary).
+
+```{python}
+ds_train_cleaned, vectorizer = bow_tfidf(data_cleaner(ds_train_filtered.data), tfidf_vectorizer=None)
+```
+
+Now the train df is cleaned and vectorized.
+
+```{python}
+ds_train_cleaned
+```
+
+We can do the same for the test df, but using the vectorizer fitted on the train df, to avoid information spilling and a different vocabulary.
+
+```{python}
+ds_test_cleaned, vectorizer = bow_tfidf(data_cleaner(ds_test_filtered.data), tfidf_vectorizer=vectorizer)
+```
+
+The vectorizer can be saved and used for a CI/CD in production.
+
+NB In the ML course, during the training, it is used the KFold CV to avoid overfitting and assure the data quality.
+
+# Model
+
+```{python}
+from sklearn.neural_network import MLPClassifier
+```
+
+For text classification, the best practice is to use a logistic activation.
+
+```{python}
+clf = MLPClassifier(
+  activation="logistic",
+  solver="adam",
+  max_iter=100,
+  hidden_layer_sizes=(100,), # one layer with dimension 100
+  tol=.005,
+  verbose=True
+)
+```
+
+# Fit
+
+```{python}
+clf.fit(
+  X=ds_train_cleaned,
+  y=ds_train_filtered.target
+)
+```
+
+# Evaluate
+
+`.score` compare the real and predicted labels.
+
+We have an accuracy of`{python} clf.score(X=ds_test_cleaned, y=ds_test_filtered.target)`.
+
+
+# Predict
+
+Is the model working correctly? Lets test it!
+
+```{python}
+target = clf.predict(
+  bow_tfidf(data_cleaner(["IBM is one of the bigger company in the world!"]), vectorizer)[0]
+  )
+```
+
+The predicted label is `{python} target_names[target[0]]`.
