@@ -1,0 +1,190 @@
+---
+author: "Simone Brazzi"
+title: "Sentiment Analysis"
+date: "2024-08-25"
+format:
+  html:
+    self-contained: true
+    toc: true
+    toc-title: "Table of Contents"
+    toc-depth: 3
+    number-sections: true
+    number-depth: 3
+    embed-resources: true
+    anchor-sections: true
+    smooth-scroll: true
+    highlight-style: monokai
+    code-line-numbers: true
+    code-copy: true
+    code-link: true
+    theme:
+      dark: darkly
+      light: flatly
+  ipynb: default
+format-links: [ipynb]
+engine: knitr
+execute:
+  cache: false
+  freeze: true
+---
+
+```{r}
+#| echo: false
+# renv::use_python("/Users/simonebrazzi/venv/nlp/bin/python3")
+```
+
+
+
+
+# Intro
+
+Sentiment analysis of the text to understand if it is positive or negative.
+The algorithm assign a value to the words, based on how much it is positive or negative.
+
+This task its heavily depending on the **Bayes' Theorem**.
+
+$$
+P(A|B) = \frac{P(A \cap B)}{P(B)} \\
+
+P(A|B) = P(B|A)\frac{P(A)}{P(B)}
+$$
+
+A word is positive if the sentence is positive. We first need a reference dataset with the label for each word.
+
+To calculate the weight of each word for the subset, each word is compared to the 
+frequency of the word itself.
+
+Having the weights for each word, we can calculate the product of the conditional probablities for each word.
+
+$$
+\prod_{i}^{m} \frac{P(w_i |Pos)}{P(w_i | Neg)}
+$$
+
+
+So word_1_pos over word_1_neg multiplied by word_2_pos over word_2_neg, so on. If the result is greater than 1, the sentence is positive; otherwise it is negative.
+
+# Import
+
+
+
+
+```{python}
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.naive_bayes import MultinomialNB
+
+import spacy
+import string
+from nltk.corpus import stopwords
+import re
+
+```
+
+
+
+
+# Dataset
+
+
+
+
+```{python}
+path = "/Users/simonebrazzi/R/profAI_nlp/datasets/Lezione_5-sentiment_Analysis/"
+file = "imbd_dataset.csv"
+
+df = pd.read_csv(path + file)
+df.sentiment.value_counts()
+```
+
+
+
+
+It is a 50k reviews balanced dataset. We are going to use a smaller dataset of 5k reviews using `train_test_split`.
+
+
+
+
+```{python}
+c, reviews, c1, sentiments = train_test_split(
+  df.review,
+  df.sentiment,
+  test_size=.1,
+  random_state=42
+)
+sentiments.value_counts()
+```
+
+```{python}
+english_stopwords = stopwords.words("english")
+nlp = spacy.load("en_core_web_sm")
+punctuation = set(string.punctuation)
+
+def data_cleaner(df):
+  
+  df_to_return = []
+  for sentence in df:
+    sentence = sentence.lower()
+    for c in string.punctuation:
+      sentence = sentence.replace(c, " ")
+    document = nlp(sentence)
+    sentence = ' '.join(token.lemma_ for token in document)
+    sentence = ' '.join(word for word in sentence.split() if word not in english_stopwords)
+    sentence = re.sub("\d", "", sentence)
+    df_to_return.append(sentence)
+    
+  return df_to_return
+```
+
+
+
+
+## Data cleaning
+
+
+
+
+```{python}
+reviews_cleaned = []
+for r in reviews:
+  reviews_cleaned.append(data_cleaner(r))
+
+reviews_cleaned[0]
+```
+
+```{python}
+xtrain, xtest, ytrain, ytest = train_test_split(
+  reviews_cleaned,
+  sentiments,
+  test_size=.2,
+  random_state=42
+)
+```
+
+
+
+
+# Model
+
+## Vectorize
+
+
+
+```{python}
+vec = CountVectorizer()
+xtrain = vec.fit_transform(xtrain).toarray() # to have an array
+xtest = vec.transform(xtest) # only transform because we fit on the train and avoid data spill
+```
+
+
+
+
+## Fit
+
+
+
+```{python}
+model = MultinomialNB()
+model.fit(x, y)
+```
+

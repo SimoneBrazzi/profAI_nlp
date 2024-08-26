@@ -1,0 +1,1364 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="quarto-1.5.56" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+
+<meta name="author" content="Simone Brazzi" />
+<meta name="dcterms.date" content="2024-08-21" />
+
+<title>Language Identification</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+<!-- htmldependencies:E3FAD763 -->
+<style>html{ scroll-behavior: smooth; }</style>
+
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  
+  <script>
+    (function () {
+      var script = document.createElement("script");
+      script.type = "text/javascript";
+      script.src  = "https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js";
+      document.getElementsByTagName("head")[0].appendChild(script);
+    })();
+  </script>
+
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN") {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+</head>
+
+<body>
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+<div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+  <div id="quarto-toc-target"></div>
+</div>
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Language Identification</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>Simone Brazzi </p>
+          </div>
+  </div>
+    
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">August 21, 2024</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+
+
+</header>
+
+<nav id="TOC" role="doc-toc">
+    <h2 id="toc-title">Table of Contents</h2>
+   
+  <ul>
+  <li><a href="#notes" id="toc-notes"><span class="header-section-number">1</span> Notes</a>
+  <ul>
+  <li><a href="#n-grams" id="toc-n-grams"><span class="header-section-number">1.1</span> N-grams</a></li>
+  </ul></li>
+  <li><a href="#import" id="toc-import"><span class="header-section-number">2</span> Import</a></li>
+  <li><a href="#how-to-create-the-n-grams" id="toc-how-to-create-the-n-grams"><span class="header-section-number">3</span> How to create the n-grams</a></li>
+  <li><a href="#dataset" id="toc-dataset"><span class="header-section-number">4</span> Dataset</a></li>
+  <li><a href="#preprocessing" id="toc-preprocessing"><span class="header-section-number">5</span> Preprocessing</a></li>
+  <li><a href="#split" id="toc-split"><span class="header-section-number">6</span> Split</a></li>
+  <li><a href="#model" id="toc-model"><span class="header-section-number">7</span> Model</a>
+  <ul>
+  <li><a href="#fit" id="toc-fit"><span class="header-section-number">7.1</span> Fit</a></li>
+  <li><a href="#evaluate" id="toc-evaluate"><span class="header-section-number">7.2</span> Evaluate</a></li>
+  <li><a href="#predict" id="toc-predict"><span class="header-section-number">7.3</span> Predict</a></li>
+  </ul></li>
+  </ul>
+</nav>
+<div class="cell">
+<div class="cell-output cell-output-stdout">
+<pre><code>- Activated Python 3.11.7 [virtualenv; ~/venv/nlp]</code></pre>
+</div>
+</div>
+<section id="notes" class="level1" data-number="1">
+<h1 data-number="1"><span class="header-section-number">1</span> Notes</h1>
+<p>Foundamental task for other tasks as classification or speech tagging.</p>
+<section id="n-grams" class="level2" data-number="1.1">
+<h2 data-number="1.1"><span class="header-section-number">1.1</span> N-grams</h2>
+<ul>
+<li>It is an element of a sentence or word.</li>
+<li>Useful for NLP, DNA sequence and protein sequence.</li>
+<li>Predict word.</li>
+<li>Generate text.</li>
+<li>Conditional probability -&gt; Markov’s chain to predict future word using previous ones.</li>
+</ul>
+<p><span class="math display">\[
+P(X_i | X_{i-1}, \ ...\ , X_{i - (n - 1)})
+\]</span> Limits: - <strong>curse of dimensionality</strong>. - <strong>OOV</strong>, Out Of Vocabulary grams. There is the need for a gram for these OOV.</p>
+<p>Types: - 2-grams or bi-grams. 2 words for each. - 3-grams.</p>
+<p>It depends on the contest.</p>
+<p>The smaller the gram, the general it is, the higher the vocabulary dimension.</p>
+<p>The n-gram approach can avoid high dimensionality, meaning avoiding too many zeros in the vectors.</p>
+</section>
+</section>
+<section id="import" class="level1" data-number="2">
+<h1 data-number="2"><span class="header-section-number">2</span> Import</h1>
+<div class="cell">
+<div class="sourceCode" id="cb2"><pre class="sourceCode numberSource python cell-code number-lines"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1"></a><span class="im">from</span> nltk <span class="im">import</span> ngrams</span>
+<span id="cb2-2"><a href="#cb2-2"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb2-3"><a href="#cb2-3"></a></span>
+<span id="cb2-4"><a href="#cb2-4"></a><span class="im">from</span> sklearn.feature_extraction.text <span class="im">import</span> CountVectorizer</span>
+<span id="cb2-5"><a href="#cb2-5"></a><span class="im">from</span> sklearn.model_selection <span class="im">import</span> train_test_split</span>
+<span id="cb2-6"><a href="#cb2-6"></a><span class="im">from</span> sklearn.neural_network <span class="im">import</span> MLPClassifier</span></code></pre></div>
+</div>
+</section>
+<section id="how-to-create-the-n-grams" class="level1" data-number="3">
+<h1 data-number="3"><span class="header-section-number">3</span> How to create the n-grams</h1>
+<div class="cell">
+<div class="sourceCode" id="cb3"><pre class="sourceCode numberSource python cell-code number-lines"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1"></a>sentence <span class="op">=</span> <span class="st">&quot;Questa è una frase di prova in lingua italiana.&quot;</span></span>
+<span id="cb3-2"><a href="#cb3-2"></a>n <span class="op">=</span> <span class="dv">2</span> <span class="co"># n-grams</span></span>
+<span id="cb3-3"><a href="#cb3-3"></a></span>
+<span id="cb3-4"><a href="#cb3-4"></a>ngrams_2 <span class="op">=</span> ngrams(</span>
+<span id="cb3-5"><a href="#cb3-5"></a>  sequence<span class="op">=</span>sentence,</span>
+<span id="cb3-6"><a href="#cb3-6"></a>  n<span class="op">=</span>n</span>
+<span id="cb3-7"><a href="#cb3-7"></a>  )</span></code></pre></div>
+</div>
+<p>ngrams_2 is a zip file. It has to been iterated.</p>
+<div class="cell">
+<div class="sourceCode" id="cb4"><pre class="sourceCode numberSource python cell-code number-lines"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1"></a>[n <span class="cf">for</span> n <span class="kw">in</span> ngrams_2]</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[(&#39;Q&#39;, &#39;u&#39;), (&#39;u&#39;, &#39;e&#39;), (&#39;e&#39;, &#39;s&#39;), (&#39;s&#39;, &#39;t&#39;), (&#39;t&#39;, &#39;a&#39;), (&#39;a&#39;, &#39; &#39;), (&#39; &#39;, &#39;è&#39;), (&#39;è&#39;, &#39; &#39;), (&#39; &#39;, &#39;u&#39;), (&#39;u&#39;, &#39;n&#39;), (&#39;n&#39;, &#39;a&#39;), (&#39;a&#39;, &#39; &#39;), (&#39; &#39;, &#39;f&#39;), (&#39;f&#39;, &#39;r&#39;), (&#39;r&#39;, &#39;a&#39;), (&#39;a&#39;, &#39;s&#39;), (&#39;s&#39;, &#39;e&#39;), (&#39;e&#39;, &#39; &#39;), (&#39; &#39;, &#39;d&#39;), (&#39;d&#39;, &#39;i&#39;), (&#39;i&#39;, &#39; &#39;), (&#39; &#39;, &#39;p&#39;), (&#39;p&#39;, &#39;r&#39;), (&#39;r&#39;, &#39;o&#39;), (&#39;o&#39;, &#39;v&#39;), (&#39;v&#39;, &#39;a&#39;), (&#39;a&#39;, &#39; &#39;), (&#39; &#39;, &#39;i&#39;), (&#39;i&#39;, &#39;n&#39;), (&#39;n&#39;, &#39; &#39;), (&#39; &#39;, &#39;l&#39;), (&#39;l&#39;, &#39;i&#39;), (&#39;i&#39;, &#39;n&#39;), (&#39;n&#39;, &#39;g&#39;), (&#39;g&#39;, &#39;u&#39;), (&#39;u&#39;, &#39;a&#39;), (&#39;a&#39;, &#39; &#39;), (&#39; &#39;, &#39;i&#39;), (&#39;i&#39;, &#39;t&#39;), (&#39;t&#39;, &#39;a&#39;), (&#39;a&#39;, &#39;l&#39;), (&#39;l&#39;, &#39;i&#39;), (&#39;i&#39;, &#39;a&#39;), (&#39;a&#39;, &#39;n&#39;), (&#39;n&#39;, &#39;a&#39;), (&#39;a&#39;, &#39;.&#39;)]</code></pre>
+</div>
+</div>
+<p>We can create an ngram of 10 charachters.</p>
+<div class="cell">
+<div class="sourceCode" id="cb6"><pre class="sourceCode numberSource python cell-code number-lines"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1"></a>ngram_ita <span class="op">=</span> ngrams(sentence, <span class="dv">10</span>)</span>
+<span id="cb6-2"><a href="#cb6-2"></a></span>
+<span id="cb6-3"><a href="#cb6-3"></a>[<span class="st">&quot;&quot;</span>.join(n) <span class="cf">for</span> n <span class="kw">in</span> ngram_ita]</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[&#39;Questa è u&#39;, &#39;uesta è un&#39;, &#39;esta è una&#39;, &#39;sta è una &#39;, &#39;ta è una f&#39;, &#39;a è una fr&#39;, &#39; è una fra&#39;, &#39;è una fras&#39;, &#39; una frase&#39;, &#39;una frase &#39;, &#39;na frase d&#39;, &#39;a frase di&#39;, &#39; frase di &#39;, &#39;frase di p&#39;, &#39;rase di pr&#39;, &#39;ase di pro&#39;, &#39;se di prov&#39;, &#39;e di prova&#39;, &#39; di prova &#39;, &#39;di prova i&#39;, &#39;i prova in&#39;, &#39; prova in &#39;, &#39;prova in l&#39;, &#39;rova in li&#39;, &#39;ova in lin&#39;, &#39;va in ling&#39;, &#39;a in lingu&#39;, &#39; in lingua&#39;, &#39;in lingua &#39;, &#39;n lingua i&#39;, &#39; lingua it&#39;, &#39;lingua ita&#39;, &#39;ingua ital&#39;, &#39;ngua itali&#39;, &#39;gua italia&#39;, &#39;ua italian&#39;, &#39;a italiana&#39;, &#39; italiana.&#39;]</code></pre>
+</div>
+</div>
+<p>Next step, we create a function which create a ngrammed dataset.</p>
+<div class="cell">
+<div class="sourceCode" id="cb8"><pre class="sourceCode numberSource python cell-code number-lines"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1"></a><span class="kw">def</span> my_ngram(sentence, n):</span>
+<span id="cb8-2"><a href="#cb8-2"></a>  ngram_sentence <span class="op">=</span> ngrams(sentence, n)</span>
+<span id="cb8-3"><a href="#cb8-3"></a>  <span class="cf">return</span> [<span class="st">&quot;&quot;</span>.join(n) <span class="cf">for</span> n <span class="kw">in</span> ngram_sentence]</span>
+<span id="cb8-4"><a href="#cb8-4"></a></span>
+<span id="cb8-5"><a href="#cb8-5"></a><span class="co"># test</span></span>
+<span id="cb8-6"><a href="#cb8-6"></a>my_ngram(<span class="st">&quot;Ciao sono Simone&quot;</span>, <span class="dv">2</span>)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[&#39;Ci&#39;, &#39;ia&#39;, &#39;ao&#39;, &#39;o &#39;, &#39; s&#39;, &#39;so&#39;, &#39;on&#39;, &#39;no&#39;, &#39;o &#39;, &#39; S&#39;, &#39;Si&#39;, &#39;im&#39;, &#39;mo&#39;, &#39;on&#39;, &#39;ne&#39;]</code></pre>
+</div>
+</div>
+</section>
+<section id="dataset" class="level1" data-number="4">
+<h1 data-number="4"><span class="header-section-number">4</span> Dataset</h1>
+<div class="cell">
+<div class="sourceCode" id="cb10"><pre class="sourceCode numberSource python cell-code number-lines"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1"></a>df <span class="op">=</span> pd.read_csv(<span class="st">&quot;~/R/profAI_nlp/datasets/Lezione_4-language_detection/dataset.csv&quot;</span>)</span></code></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode" id="cb11"><pre class="sourceCode numberSource python cell-code number-lines"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1"></a>df.language.value_counts()</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>language
+Estonian      1000
+Swedish       1000
+English       1000
+Russian       1000
+Romanian      1000
+Persian       1000
+Pushto        1000
+Spanish       1000
+Hindi         1000
+Korean        1000
+Chinese       1000
+French        1000
+Portugese     1000
+Indonesian    1000
+Urdu          1000
+Latin         1000
+Turkish       1000
+Japanese      1000
+Dutch         1000
+Tamil         1000
+Thai          1000
+Arabic        1000
+Name: count, dtype: int64</code></pre>
+</div>
+</div>
+<p>The dataset is perfectly balanced.</p>
+<p>Now we filter for some languages.</p>
+<div class="cell">
+<div class="sourceCode" id="cb13"><pre class="sourceCode numberSource python cell-code number-lines"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1"></a>df_small <span class="op">=</span> df[df.language.isin([<span class="st">&quot;French&quot;</span>, <span class="st">&quot;English&quot;</span>])]</span></code></pre></div>
+</div>
+</section>
+<section id="preprocessing" class="level1" data-number="5">
+<h1 data-number="5"><span class="header-section-number">5</span> Preprocessing</h1>
+<div class="cell">
+<div class="sourceCode" id="cb14"><pre class="sourceCode numberSource python cell-code number-lines"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1"></a><span class="kw">def</span> bow_count(df, count_vectorizer):</span>
+<span id="cb14-2"><a href="#cb14-2"></a>  <span class="cf">if</span> count_vectorizer <span class="op">==</span> <span class="va">None</span>:</span>
+<span id="cb14-3"><a href="#cb14-3"></a>    count_vectorizer <span class="op">=</span> CountVectorizer()</span>
+<span id="cb14-4"><a href="#cb14-4"></a>    X <span class="op">=</span> count_vectorizer.fit_transform(df)</span>
+<span id="cb14-5"><a href="#cb14-5"></a>  <span class="cf">else</span>:</span>
+<span id="cb14-6"><a href="#cb14-6"></a>    X <span class="op">=</span> count_vectorizer.transform(df)</span>
+<span id="cb14-7"><a href="#cb14-7"></a>  </span>
+<span id="cb14-8"><a href="#cb14-8"></a>  <span class="cf">return</span> X.toarray(), count_vectorizer</span></code></pre></div>
+</div>
+<p>Here could be bettere to use the CountVectorizer instead of TFIDF, because we are using different languages, so the ngram could be useless if weighted usinf tfidf.</p>
+<p>Now we create the vector of labels and ngrams.</p>
+<div class="cell">
+<div class="sourceCode" id="cb15"><pre class="sourceCode numberSource python cell-code number-lines"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1"></a>target <span class="op">=</span> df_small.language</span>
+<span id="cb15-2"><a href="#cb15-2"></a></span>
+<span id="cb15-3"><a href="#cb15-3"></a>df_ngram <span class="op">=</span> [my_ngram(sentence, <span class="dv">2</span>) <span class="cf">for</span> sentence <span class="kw">in</span> df_small.Text]</span></code></pre></div>
+</div>
+<p>Now we need a text made of bigrams.</p>
+<div class="cell">
+<div class="sourceCode" id="cb16"><pre class="sourceCode numberSource python cell-code number-lines"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1"></a>df_ngr <span class="op">=</span> [<span class="st">&quot; &quot;</span>.join(ngr_sentence) <span class="cf">for</span> ngr_sentence <span class="kw">in</span> df_ngram]</span>
+<span id="cb16-2"><a href="#cb16-2"></a>df_ngr[:<span class="dv">2</span>]</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[&#39;as ss so oc ci ia at ti io on n   d de e   r re ec ch he er rc ch he e   e et t   d de e   s sa au uv ve eg ga ar rd de e   d de e   l lh hi is st to oi ir re e   d de e   r ro oi is ss sy y- -e en n- -f fr ra an nc ce e   a ar rs sh hr rf f   r ro oi is ss sy y- -e en n- -f fr ra an nc ce e            m mé ém mo oi ir re e   d du un n   s si iè èc cl le e      v vo oi ir r   d da an ns s   l la a   b bi ib bl li io og gr ra ap ph hi ie&#39;, &#39;la a   c ch hi ir ru ur rg gi ie e   c co om mp pr re en na an nt t   p pr ri in nc ci ip pa al le em me en nt t   l la ab bl la at ti io on n   d de e   l la a   t tu um me eu ur r   l la a   n né ép ph hr re ec ct to om mi ie e   é él la ar rg gi ie e   c co om mp pr re en na an nt t   l le e   p pl lu us s   s so ou uv ve en nt t   l la a   s su ur rr ré én na al le e   e et t   l le es s   g ga an ng gl li io on ns s   s si it tu ué és s   à à   p pr ro ox xi im mi it té&#39;]</code></pre>
+</div>
+</div>
+<p>Now we can create vectorize the dataset.</p>
+<div class="cell">
+<div class="sourceCode" id="cb18"><pre class="sourceCode numberSource python cell-code number-lines"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1"></a>df_ngr_bow, cvectorizer <span class="op">=</span> bow_count(df<span class="op">=</span>df_ngr, count_vectorizer<span class="op">=</span><span class="va">None</span>)</span>
+<span id="cb18-2"><a href="#cb18-2"></a>df_ngr_bow</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>array([[0, 0, 0, ..., 0, 0, 0],
+       [0, 1, 0, ..., 0, 0, 0],
+       [0, 0, 1, ..., 0, 0, 0],
+       ...,
+       [0, 0, 1, ..., 0, 0, 0],
+       [0, 1, 0, ..., 0, 0, 0],
+       [0, 1, 1, ..., 0, 0, 0]])</code></pre>
+</div>
+</div>
+<p>To confirm, the length of the df is <code>{python} len(df_ngr_bow)</code>.</p>
+<p>Working with different languages, it could be the vocabulary is too big and could be useful to remove natural stopword or domain specific ones.</p>
+<div class="cell">
+<div class="sourceCode" id="cb20"><pre class="sourceCode numberSource python cell-code number-lines"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1"></a>cvectorizer.vocabulary_</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>{&#39;as&#39;: 18, &#39;ss&#39;: 599, &#39;so&#39;: 595, &#39;oc&#39;: 460, &#39;ci&#39;: 78, &#39;ia&#39;: 263, &#39;at&#39;: 19, &#39;ti&#39;: 627, &#39;io&#39;: 277, &#39;on&#39;: 471, &#39;de&#39;: 106, &#39;re&#39;: 544, &#39;ec&#39;: 142, &#39;ch&#39;: 77, &#39;he&#39;: 239, &#39;er&#39;: 157, &#39;rc&#39;: 542, &#39;et&#39;: 159, &#39;sa&#39;: 582, &#39;au&#39;: 20, &#39;uv&#39;: 673, &#39;ve&#39;: 690, &#39;eg&#39;: 146, &#39;ga&#39;: 202, &#39;ar&#39;: 17, &#39;rd&#39;: 543, &#39;lh&#39;: 358, &#39;hi&#39;: 242, &#39;is&#39;: 281, &#39;st&#39;: 600, &#39;to&#39;: 633, &#39;oi&#39;: 466, &#39;ir&#39;: 280, &#39;ro&#39;: 554, &#39;sy&#39;: 604, &#39;en&#39;: 153, &#39;fr&#39;: 188, &#39;ra&#39;: 540, &#39;an&#39;: 13, &#39;nc&#39;: 424, &#39;ce&#39;: 74, &#39;rs&#39;: 558, &#39;sh&#39;: 589, &#39;hr&#39;: 250, &#39;rf&#39;: 545, &#39;mé&#39;: 413, &#39;ém&#39;: 855, &#39;mo&#39;: 400, &#39;du&#39;: 121, &#39;un&#39;: 665, &#39;si&#39;: 590, &#39;iè&#39;: 291, &#39;èc&#39;: 830, &#39;cl&#39;: 80, &#39;le&#39;: 355, &#39;vo&#39;: 696, &#39;da&#39;: 102, &#39;ns&#39;: 440, &#39;la&#39;: 351, &#39;bi&#39;: 47, &#39;ib&#39;: 264, &#39;bl&#39;: 50, &#39;li&#39;: 359, &#39;og&#39;: 464, &#39;gr&#39;: 218, &#39;ap&#39;: 15, &#39;ph&#39;: 504, &#39;ie&#39;: 267, &#39;ru&#39;: 560, &#39;ur&#39;: 669, &#39;rg&#39;: 546, &#39;gi&#39;: 210, &#39;co&#39;: 83, &#39;om&#39;: 470, &#39;mp&#39;: 401, &#39;pr&#39;: 513, &#39;na&#39;: 422, &#39;nt&#39;: 441, &#39;ri&#39;: 548, &#39;in&#39;: 276, &#39;ip&#39;: 278, &#39;pa&#39;: 497, &#39;al&#39;: 11, &#39;em&#39;: 152, &#39;me&#39;: 390, &#39;ab&#39;: 1, &#39;tu&#39;: 638, &#39;um&#39;: 664, &#39;eu&#39;: 160, &#39;né&#39;: 451, &#39;ép&#39;: 858, &#39;ct&#39;: 88, &#39;mi&#39;: 394, &#39;él&#39;: 854, &#39;pl&#39;: 508, &#39;lu&#39;: 371, &#39;us&#39;: 670, &#39;ou&#39;: 478, &#39;su&#39;: 601, &#39;rr&#39;: 557, &#39;ré&#39;: 570, &#39;én&#39;: 856, &#39;es&#39;: 158, &#39;ng&#39;: 428, &#39;gl&#39;: 212, &#39;it&#39;: 282, &#39;ué&#39;: 682, &#39;és&#39;: 861, &#39;ox&#39;: 481, &#39;xi&#39;: 740, &#39;im&#39;: 275, &#39;té&#39;: 646, &#39;dè&#39;: 128, &#39;ès&#39;: 839, &#39;nn&#39;: 435, &#39;ée&#39;: 847, &#39;mm&#39;: 398, &#39;mu&#39;: 405, &#39;ne&#39;: 426, &#39;rn&#39;: 553, &#39;no&#39;: 436, &#39;vi&#39;: 691, &#39;il&#39;: 274, &#39;ll&#39;: 362, &#39;go&#39;: 215, &#39;ai&#39;: 8, &#39;nv&#39;: 443, &#39;nd&#39;: 425, &#39;dr&#39;: 118, &#39;lo&#39;: 365, &#39;vr&#39;: 698, &#39;se&#39;: 586, &#39;rv&#39;: 561, &#39;ig&#39;: 269, &#39;gn&#39;: 214, &#39;fe&#39;: 179, &#39;ov&#39;: 479, &#39;nu&#39;: 442, &#39;ex&#39;: 163, &#39;xp&#39;: 743, &#39;dé&#39;: 129, &#39;iq&#39;: 279, &#39;qu&#39;: 536, &#39;ue&#39;: 656, &#39;sp&#39;: 596, &#39;pe&#39;: 501, &#39;ta&#39;: 619, &#39;ac&#39;: 2, &#39;cu&#39;: 89, &#39;ul&#39;: 663, &#39;av&#39;: 21, &#39;cr&#39;: 86, &#39;éa&#39;: 843, &#39;mb&#39;: 387, &#39;br&#39;: 54, &#39;ux&#39;: 675, &#39;ot&#39;: 477, &#39;ts&#39;: 636, &#39;ba&#39;: 39, &#39;nl&#39;: 433, &#39;lé&#39;: 380, &#39;éc&#39;: 845, &#39;ca&#39;: 70, &#39;rt&#39;: 559, &#39;tr&#39;: 635, &#39;ag&#39;: 6, &#39;ge&#39;: 206, &#39;ic&#39;: 265, &#39;ol&#39;: 469, &#39;pp&#39;: 512, &#39;iv&#39;: 284, &#39;ua&#39;: 652, &#39;gt&#39;: 220, &#39;di&#39;: 110, &#39;ix&#39;: 286, &#39;hu&#39;: 253, &#39;ui&#39;: 660, &#39;mê&#39;: 414, &#39;êm&#39;: 871, &#39;hé&#39;: 258, &#39;mè&#39;: 412, &#39;èn&#39;: 836, &#39;od&#39;: 461, &#39;ut&#39;: 671, &#39;ay&#39;: 24, &#39;ys&#39;: 771, &#39;am&#39;: 12, &#39;ma&#39;: 386, &#39;el&#39;: 151, &#39;ef&#39;: 145, &#39;ff&#39;: 180, &#39;nk&#39;: 432, &#39;ka&#39;: 320, &#39;sé&#39;: 609, &#39;ér&#39;: 860, &#39;ls&#39;: 369, &#39;ét&#39;: 862, &#39;ég&#39;: 849, &#39;fa&#39;: 175, &#39;te&#39;: 623, &#39;ad&#39;: 3, &#39;lt&#39;: 370, &#39;gè&#39;: 228, &#39;èr&#39;: 838, &#39;up&#39;: 667, &#39;lc&#39;: 353, &#39;iu&#39;: 283, &#39;jo&#39;: 308, &#39;oh&#39;: 465, &#39;hn&#39;: 246, &#39;wa&#39;: 711, &#39;aw&#39;: 22, &#39;ed&#39;: 143, &#39;of&#39;: 463, &#39;ld&#39;: 354, &#39;be&#39;: 43, &#39;th&#39;: 626, &#39;fi&#39;: 182, &#39;pi&#39;: 505, &#39;tz&#39;: 643, &#39;zk&#39;: 791, &#39;ke&#39;: 324, &#39;iz&#39;: 288, &#39;ze&#39;: 787, &#39;os&#39;: 476, &#39;tt&#39;: 637, &#39;ub&#39;: 653, &#39;bs&#39;: 55, &#39;ei&#39;: 148, &#39;hè&#39;: 257, &#39;ya&#39;: 754, &#39;if&#39;: 268, &#39;fu&#39;: 191, &#39;tv&#39;: 639, &#39;va&#39;: 686, &#39;po&#39;: 511, &#39;op&#39;: 473, &#39;pu&#39;: 516, &#39;rè&#39;: 569, &#39;ni&#39;: 430, &#39;uj&#39;: 661, &#39;dh&#39;: 109, &#39;id&#39;: 266, &#39;ha&#39;: 235, &#39;ug&#39;: 658, &#39;gb&#39;: 203, &#39;by&#39;: 60, &#39;bu&#39;: 57, &#39;eo&#39;: 154, &#39;or&#39;: 475, &#39;ty&#39;: 642, &#39;ee&#39;: 144, &#39;nm&#39;: 434, &#39;wi&#39;: 718, &#39;rk&#39;: 550, &#39;ks&#39;: 337, &#39;ey&#39;: 164, &#39;ep&#39;: 155, &#39;ki&#39;: 328, &#39;ft&#39;: 190, &#39;sq&#39;: 597, &#39;oo&#39;: 472, &#39;sc&#39;: 584, &#39;pé&#39;: 525, &#39;ja&#39;: 299, &#39;bo&#39;: 53, &#39;rb&#39;: 541, &#39;ds&#39;: 119, &#39;gu&#39;: 221, &#39;ea&#39;: 140, &#39;uc&#39;: 654, &#39;km&#39;: 332, &#39;ev&#39;: 161, &#39;ry&#39;: 564, &#39;ak&#39;: 10, &#39;rm&#39;: 552, &#39;tl&#39;: 630, &#39;ly&#39;: 375, &#39;nz&#39;: 447, &#39;je&#39;: 301, &#39;vn&#39;: 695, &#39;tw&#39;: 640, &#39;wo&#39;: 724, &#39;ud&#39;: 655, &#39;dm&#39;: 113, &#39;rl&#39;: 551, &#39;db&#39;: 103, &#39;gh&#39;: 209, &#39;fo&#39;: 186, &#39;sn&#39;: 594, &#39;cs&#39;: 87, &#39;ck&#39;: 79, &#39;ht&#39;: 252, &#39;ho&#39;: 247, &#39;nr&#39;: 439, &#39;rh&#39;: 547, &#39;hp&#39;: 248, &#39;pm&#39;: 509, &#39;ew&#39;: 162, &#39;ob&#39;: 459, &#39;ms&#39;: 403, &#39;œu&#39;: 964, &#39;nç&#39;: 449, &#39;ça&#39;: 826, &#39;lq&#39;: 367, &#39;ln&#39;: 364, &#39;rê&#39;: 571, &#39;ju&#39;: 311, &#39;ah&#39;: 7, &#39;hl&#39;: 244, &#39;oa&#39;: 458, &#39;dd&#39;: 105, &#39;dl&#39;: 112, &#39;do&#39;: 115, &#39;we&#39;: 715, &#39;yn&#39;: 766, &#39;wh&#39;: 717, &#39;tf&#39;: 624, &#39;lk&#39;: 361, &#39;za&#39;: 784, &#39;my&#39;: 408, &#39;oj&#39;: 467, &#39;cy&#39;: 92, &#39;ow&#39;: 480, &#39;ok&#39;: 468, &#39;kc&#39;: 322, &#39;ko&#39;: 334, &#39;lp&#39;: 366, &#39;oy&#39;: 482, &#39;ye&#39;: 758, &#39;nj&#39;: 431, &#39;jr&#39;: 309, &#39;yi&#39;: 762, &#39;az&#39;: 25, &#39;zy&#39;: 801, &#39;pô&#39;: 527, &#39;ôt&#39;: 914, &#39;oë&#39;: 486, &#39;ël&#39;: 877, &#39;cè&#39;: 94, &#39;éb&#39;: 844, &#39;ax&#39;: 23, &#39;xe&#39;: 737, &#39;sb&#39;: 583, &#39;ny&#39;: 446, &#39;sk&#39;: 591, &#39;xt&#39;: 747, &#39;wn&#39;: 723, &#39;lb&#39;: 352, &#39;yo&#39;: 767, &#39;kn&#39;: 333, &#39;hw&#39;: 254, &#39;lv&#39;: 372, &#39;af&#39;: 5, &#39;fl&#39;: 183, &#39;pt&#39;: 515, &#39;wl&#39;: 721, &#39;cc&#39;: 72, &#39;bt&#39;: 56, &#39;lè&#39;: 379, &#39;èv&#39;: 841, &#39;nq&#39;: 438, &#39;èm&#39;: 835, &#39;hy&#39;: 255, &#39;yz&#39;: 778, &#39;zo&#39;: 795, &#39;wy&#39;: 732, &#39;yc&#39;: 756, &#39;sf&#39;: 587, &#39;ii&#39;: 271, &#39;gw&#39;: 223, &#39;hs&#39;: 251, &#39;yd&#39;: 757, &#39;dw&#39;: 123, &#39;hb&#39;: 236, &#39;ps&#39;: 514, &#39;ae&#39;: 4, &#39;ji&#39;: 304, &#39;ik&#39;: 273, &#39;cm&#39;: 81, &#39;nf&#39;: 427, &#39;év&#39;: 864, &#39;vé&#39;: 706, &#39;eb&#39;: 141, &#39;aj&#39;: 9, &#39;lm&#39;: 363, &#39;ié&#39;: 292, &#39;où&#39;: 489, &#39;gé&#39;: 229, &#39;fè&#39;: 195, &#39;fé&#39;: 196, &#39;cé&#39;: 95, &#39;lf&#39;: 356, &#39;yu&#39;: 773, &#39;kr&#39;: 336, &#39;yr&#39;: 770, &#39;dt&#39;: 120, &#39;ws&#39;: 728, &#39;oe&#39;: 462, &#39;ku&#39;: 339, &#39;fü&#39;: 199, &#39;ür&#39;: 928, &#39;sö&#39;: 611, &#39;öt&#39;: 919, &#39;py&#39;: 519, &#39;wr&#39;: 727, &#39;hm&#39;: 245, &#39;gg&#39;: 208, &#39;xc&#39;: 736, &#39;sw&#39;: 603, &#39;sl&#39;: 592, &#39;zi&#39;: 790, &#39;rp&#39;: 555, &#39;éq&#39;: 859, &#39;éj&#39;: 852, &#39;tc&#39;: 621, &#39;éâ&#39;: 867, &#39;ât&#39;: 816, &#39;oq&#39;: 474, &#39;rô&#39;: 573, &#39;ôl&#39;: 909, &#39;ez&#39;: 165, &#39;éd&#39;: 846, &#39;oè&#39;: 484, &#39;èt&#39;: 840, &#39;yt&#39;: 772, &#39;dv&#39;: 122, &#39;eç&#39;: 166, &#39;çu&#39;: 828, &#39;sr&#39;: 598, &#39;aé&#39;: 27, &#39;tè&#39;: 645, &#39;aë&#39;: 28, &#39;èg&#39;: 833, &#39;aq&#39;: 16, &#39;eh&#39;: 147, &#39;ym&#39;: 765, &#39;qi&#39;: 532, &#39;sm&#39;: 593, &#39;ao&#39;: 14, &#39;oû&#39;: 490, &#39;ût&#39;: 923, &#39;wu&#39;: 730, &#39;xo&#39;: 742, &#39;iw&#39;: 285, &#39;dq&#39;: 117, &#39;cq&#39;: 85, &#39;uo&#39;: 666, &#39;lg&#39;: 357, &#39;xu&#39;: 748, &#39;kp&#39;: 335, &#39;fy&#39;: 193, &#39;lâ&#39;: 377, &#39;âc&#39;: 809, &#39;gy&#39;: 225, &#39;yp&#39;: 768, &#39;vu&#39;: 701, &#39;uè&#39;: 681, &#39;èl&#39;: 834, &#39;uà&#39;: 678, &#39;fs&#39;: 189, &#39;xv&#39;: 749, &#39;œi&#39;: 963, &#39;êt&#39;: 874, &#39;ej&#39;: 149, &#39;yé&#39;: 779, &#39;rq&#39;: 556, &#39;bâ&#39;: 61, &#39;âl&#39;: 811, &#39;éf&#39;: 848, &#39;lw&#39;: 373, &#39;uk&#39;: 662, &#39;aî&#39;: 29, &#39;ît&#39;: 887, &#39;eq&#39;: 156, &#39;uê&#39;: 683, &#39;zu&#39;: 798, &#39;vè&#39;: 705, &#39;bé&#39;: 63, &#39;oé&#39;: 485, &#39;dn&#39;: 114, &#39;tn&#39;: 632, &#39;nw&#39;: 444, &#39;pè&#39;: 524, &#39;éo&#39;: 857, &#39;xf&#39;: 738, &#39;kd&#39;: 323, &#39;èq&#39;: 837, &#39;md&#39;: 389, &#39;dc&#39;: 104, &#39;tm&#39;: 631, &#39;mg&#39;: 392, &#39;gm&#39;: 213, &#39;rw&#39;: 562, &#39;gs&#39;: 219, &#39;yl&#39;: 764, &#39;xa&#39;: 734, &#39;yv&#39;: 774, &#39;mn&#39;: 399, &#39;zw&#39;: 800, &#39;xé&#39;: 753, &#39;uz&#39;: 677, &#39;éu&#39;: 863, &#39;îl&#39;: 885, &#39;lî&#39;: 381, &#39;pb&#39;: 498, &#39;vy&#39;: 702, &#39;ml&#39;: 397, &#39;wt&#39;: 729, &#39;dg&#39;: 108, &#39;gk&#39;: 211, &#39;yw&#39;: 775, &#39;دو&#39;: 1087, &#39;وك&#39;: 1106, &#39;كل&#39;: 1098, &#39;لا&#39;: 1100, &#39;اص&#39;: 1078, &#39;عز&#39;: 1093, &#39;زي&#39;: 1090, &#39;يز&#39;: 1107, &#39;tb&#39;: 620, &#39;qs&#39;: 535, &#39;jf&#39;: 302, &#39;zz&#39;: 802, &#39;nb&#39;: 423, &#39;nh&#39;: 429, &#39;dy&#39;: 125, &#39;uf&#39;: 657, &#39;ij&#39;: 272, &#39;lx&#39;: 374, &#39;xx&#39;: 750, &#39;ky&#39;: 342, &#39;în&#39;: 886, &#39;tô&#39;: 650, &#39;wb&#39;: 712, &#39;fc&#39;: 177, &#39;qa&#39;: 528, &#39;gp&#39;: 216, &#39;ek&#39;: 150, &#39;cf&#39;: 75, &#39;rz&#39;: 565, &#39;éé&#39;: 868, &#39;aa&#39;: 0, &#39;oï&#39;: 488, &#39;ïd&#39;: 888, &#39;fw&#39;: 192, &#39;âg&#39;: 810, &#39;cv&#39;: 90, &#39;uy&#39;: 676, &#39;pê&#39;: 526, &#39;êc&#39;: 869, &#39;dz&#39;: 126, &#39;ná&#39;: 448, &#39;思川&#39;: 1129, &#39;川駅&#39;: 1128, &#39;yō&#39;: 783, &#39;ōm&#39;: 961, &#39;mō&#39;: 420, &#39;bb&#39;: 40, &#39;मप&#39;: 1112, &#39;हन&#39;: 1113, &#39;मन&#39;: 1111, &#39;vs&#39;: 699, &#39;bc&#39;: 41, &#39;là&#39;: 376, &#39;bj&#39;: 48, &#39;sè&#39;: 608, &#39;èd&#39;: 831, &#39;râ&#39;: 567, &#39;pn&#39;: 510, &#39;ió&#39;: 293, &#39;ón&#39;: 906, &#39;vl&#39;: 693, &#39;bm&#39;: 51, &#39;zm&#39;: 793, &#39;pf&#39;: 502, &#39;td&#39;: 622, &#39;iy&#39;: 287, &#39;pc&#39;: 499, &#39;bd&#39;: 42, &#39;zé&#39;: 805, &#39;éx&#39;: 865, &#39;tó&#39;: 649, &#39;ór&#39;: 907, &#39;iř&#39;: 296, &#39;ři&#39;: 965, &#39;rá&#39;: 566, &#39;ál&#39;: 807, &#39;ih&#39;: 270, &#39;oî&#39;: 487, &#39;êl&#39;: 870, &#39;mc&#39;: 388, &#39;kh&#39;: 327, &#39;pg&#39;: 503, &#39;kl&#39;: 331, &#39;tê&#39;: 647, &#39;uë&#39;: 684, &#39;ës&#39;: 878, &#39;ço&#39;: 827, &#39;wk&#39;: 720, &#39;éz&#39;: 866, &#39;js&#39;: 310, &#39;hc&#39;: 237, &#39;xh&#39;: 739, &#39;tp&#39;: 634, &#39;jà&#39;: 313, &#39;uu&#39;: 672, &#39;mw&#39;: 407, &#39;cœ&#39;: 101, &#39;nè&#39;: 450, &#39;tg&#39;: 625, &#39;gv&#39;: 222, &#39;oz&#39;: 483, &#39;sd&#39;: 585, &#39;cô&#39;: 99, &#39;hô&#39;: 259, &#39;vc&#39;: 688, &#39;kö&#39;: 346, &#39;ör&#39;: 918, &#39;vä&#39;: 704, &#39;äs&#39;: 821, &#39;gö&#39;: 232, &#39;cp&#39;: 84, &#39;fm&#39;: 184, &#39;âm&#39;: 812, &#39;tâ&#39;: 644, &#39;kw&#39;: 341, &#39;xs&#39;: 746, &#39;rû&#39;: 575, &#39;ûl&#39;: 921, &#39;bv&#39;: 58, &#39;dj&#39;: 111, &#39;uh&#39;: 659, &#39;jj&#39;: 305, &#39;np&#39;: 437, &#39;hâ&#39;: 256, &#39;vê&#39;: 707, &#39;pâ&#39;: 521, &#39;aï&#39;: 30, &#39;ïs&#39;: 897, &#39;mt&#39;: 404, &#39;ïg&#39;: 891, &#39;jd&#39;: 300, &#39;xr&#39;: 745, &#39;hd&#39;: 238, &#39;pd&#39;: 500, &#39;vô&#39;: 708, &#39;êq&#39;: 873, &#39;ïf&#39;: 890, &#39;kt&#39;: 338, &#39;sg&#39;: 588, &#39;уд&#39;: 1064, &#39;да&#39;: 1035, &#39;ар&#39;: 1028, &#39;рн&#39;: 1058, &#39;ны&#39;: 1049, &#39;ые&#39;: 1067, &#39;ст&#39;: 1062, &#39;тр&#39;: 1063, &#39;ро&#39;: 1059, &#39;ой&#39;: 1052, &#39;йк&#39;: 1040, &#39;ки&#39;: 1042, &#39;бу&#39;: 1032, &#39;дё&#39;: 1036, &#39;ён&#39;: 1070, &#39;нн&#39;: 1047, &#39;но&#39;: 1048, &#39;ов&#39;: 1050, &#39;вс&#39;: 1033, &#39;ск&#39;: 1061, &#39;ий&#39;: 1038, &#39;ка&#39;: 1041, &#39;ая&#39;: 1030, &#39;ко&#39;: 1043, &#39;ое&#39;: 1051, &#39;wd&#39;: 714, &#39;yg&#39;: 760, &#39;bk&#39;: 49, &#39;bè&#39;: 62, &#39;df&#39;: 107, &#39;dê&#39;: 130, &#39;ên&#39;: 872, &#39;uá&#39;: 679, &#39;xè&#39;: 752, &#39;fb&#39;: 176, &#39;yk&#39;: 763, &#39;qq&#39;: 534, &#39;án&#39;: 808, &#39;rí&#39;: 572, &#39;íg&#39;: 880, &#39;ób&#39;: 903, &#39;mf&#39;: 391, &#39;kg&#39;: 326, &#39;sɛ&#39;: 618, &#39;ʒɔ&#39;: 985, &#39;ɔʁ&#39;: 980, &#39;ʁʒ&#39;: 983, &#39;cê&#39;: 96, &#39;aç&#39;: 26, &#39;bh&#39;: 46, &#39;lœ&#39;: 385, &#39;èb&#39;: 829, &#39;bê&#39;: 64, &#39;yb&#39;: 755, &#39;cd&#39;: 73, &#39;cn&#39;: 82, &#39;sł&#39;: 615, &#39;ła&#39;: 951, &#39;iń&#39;: 295, &#39;ńs&#39;: 956, &#39;śp&#39;: 967, &#39;ją&#39;: 317, &#39;ąc&#39;: 937, &#39;ną&#39;: 454, &#39;bł&#39;: 67, &#39;ło&#39;: 953, &#39;jé&#39;: 314, &#39;xq&#39;: 744, &#39;tk&#39;: 629, &#39;mr&#39;: 402, &#39;êv&#39;: 875, &#39;sæ&#39;: 607, &#39;æw&#39;: 825, &#39;bg&#39;: 45, &#39;éi&#39;: 851, &#39;lr&#39;: 368, &#39;hq&#39;: 249, &#39;qe&#39;: 530, &#39;cî&#39;: 98, &#39;cí&#39;: 97, &#39;ía&#39;: 879, &#39;ôm&#39;: 910, &#39;ôs&#39;: 913, &#39;gd&#39;: 205, &#39;kb&#39;: 321, &#39;ℝℤ&#39;: 1122, &#39;mö&#39;: 417, &#39;öb&#39;: 915, &#39;mü&#39;: 418, &#39;ül&#39;: 927, &#39;uw&#39;: 674, &#39;eó&#39;: 168, &#39;vd&#39;: 689, &#39;ïe&#39;: 889, &#39;zv&#39;: 799, &#39;κο&#39;: 1009, &#39;ολ&#39;: 1013, &#39;λλ&#39;: 1011, &#39;λί&#39;: 1010, &#39;ίν&#39;: 995, &#39;να&#39;: 1012, &#39;αι&#39;: 996, &#39;ις&#39;: 1005, &#39;fp&#39;: 187, &#39;aˈ&#39;: 38, &#39;ˈb&#39;: 988, &#39;aɲ&#39;: 37, &#39;ɲe&#39;: 982, &#39;oś&#39;: 494, &#39;św&#39;: 968, &#39;ię&#39;: 294, &#39;ęt&#39;: 944, &#39;oł&#39;: 493, &#39;ïv&#39;: 899, &#39;kk&#39;: 330, &#39;lä&#39;: 378, &#39;än&#39;: 819, &#39;că&#39;: 100, &#39;şe&#39;: 970, &#39;rʾ&#39;: 580, &#39;ʾā&#39;: 987, &#39;ān&#39;: 934, &#39;sê&#39;: 610, &#39;eñ&#39;: 167, &#39;ña&#39;: 900, &#39;dp&#39;: 116, &#39;ôn&#39;: 911, &#39;ōi&#39;: 960, &#39;zn&#39;: 794, &#39;ïr&#39;: 896, &#39;gf&#39;: 207, &#39;шо&#39;: 1066, &#39;ор&#39;: 1055, &#39;рс&#39;: 1060, &#39;на&#39;: 1046, &#39;ац&#39;: 1029, &#39;ци&#39;: 1065, &#39;ио&#39;: 1039, &#39;он&#39;: 1054, &#39;ал&#39;: 1027, &#39;ль&#39;: 1045, &#39;ьн&#39;: 1069, &#39;ый&#39;: 1068, &#39;па&#39;: 1056, &#39;рк&#39;: 1057, &#39;ïo&#39;: 894, &#39;jy&#39;: 312, &#39;dœ&#39;: 138, &#39;lô&#39;: 383, &#39;nx&#39;: 445, &#39;rç&#39;: 568, &#39;あさ&#39;: 1123, &#39;さま&#39;: 1124, &#39;πd&#39;: 1015, &#39;sz&#39;: 605, &#39;wm&#39;: 722, &#39;rj&#39;: 549, &#39;yx&#39;: 776, &#39;mô&#39;: 416, &#39;hf&#39;: 240, &#39;hö&#39;: 260, &#39;öf&#39;: 916, &#39;yq&#39;: 769, &#39;qv&#39;: 537, &#39;zb&#39;: 785, &#39;vá&#39;: 703, &#39;eš&#39;: 171, &#39;šo&#39;: 971, &#39;dî&#39;: 131, &#39;lò&#39;: 382, &#39;mœ&#39;: 421, &#39;yy&#39;: 777, &#39;yf&#39;: 759, &#39;γn&#39;: 999, &#39;bn&#39;: 52, &#39;bü&#39;: 65, &#39;üh&#39;: 926, &#39;sv&#39;: 602, &#39;kz&#39;: 343, &#39;zr&#39;: 796, &#39;qd&#39;: 529, &#39;cb&#39;: 71, &#39;qû&#39;: 539, &#39;ûr&#39;: 922, &#39;gü&#39;: 233, &#39;üe&#39;: 925, &#39;iá&#39;: 289, &#39;zá&#39;: 803, &#39;gê&#39;: 230, &#39;mä&#39;: 411, &#39;är&#39;: 820, &#39;ję&#39;: 318, &#39;ęd&#39;: 942, &#39;zc&#39;: 786, &#39;cz&#39;: 93, &#39;yń&#39;: 782, &#39;mó&#39;: 415, &#39;ój&#39;: 905, &#39;ał&#39;: 34, &#39;łe&#39;: 952, &#39;łż&#39;: 955, &#39;że&#39;: 973, &#39;eń&#39;: 170, &#39;nč&#39;: 455, &#39;čí&#39;: 941, &#39;íř&#39;: 884, &#39;řo&#39;: 966, &#39;oč&#39;: 491, &#39;či&#39;: 940, &#39;wc&#39;: 713, &#39;cw&#39;: 91, &#39;pj&#39;: 506, &#39;sû&#39;: 612, &#39;vp&#39;: 697, &#39;dx&#39;: 124, &#39;مح&#39;: 1102, &#39;حم&#39;: 1085, &#39;مد&#39;: 1103, &#39;عا&#39;: 1092, &#39;ام&#39;: 1079, &#39;مر&#39;: 1104, &#39;سہ&#39;: 1091, &#39;ہی&#39;: 1109, &#39;یل&#39;: 1110, &#39;عل&#39;: 1094, &#39;لی&#39;: 1101, &#39;tí&#39;: 648, &#39;ín&#39;: 882, &#39;ōz&#39;: 962, &#39;pç&#39;: 523, &#39;pw&#39;: 518, &#39;ôp&#39;: 912, &#39;üs&#39;: 929, &#39;dû&#39;: 135, &#39;fê&#39;: 197, &#39;xl&#39;: 741, &#39;yh&#39;: 761, &#39;fg&#39;: 181, &#39;tx&#39;: 641, &#39;ˈd&#39;: 989, &#39;rβ&#39;: 581, &#39;βa&#39;: 998, &#39;ˈx&#39;: 991, &#39;ˈr&#39;: 990, &#39;bf&#39;: 44, &#39;tō&#39;: 651, &#39;ōh&#39;: 959, &#39;jō&#39;: 319, &#39;ōe&#39;: 958, &#39;mh&#39;: 393, &#39;nê&#39;: 452, &#39;zt&#39;: 797, &#39;éh&#39;: 850, &#39;ëd&#39;: 876, &#39;sœ&#39;: 617, &#39;vb&#39;: 687, &#39;wą&#39;: 733, &#39;ąz&#39;: 938, &#39;xb&#39;: 735, &#39;ké&#39;: 345, &#39;hh&#39;: 241, &#39;æt&#39;: 824, &#39;ïq&#39;: 895, &#39;dü&#39;: 136, &#39;dâ&#39;: 127, &#39;ân&#39;: 813, &#39;aț&#39;: 36, &#39;ți&#39;: 978, &#39;să&#39;: 614, &#39;eț&#39;: 173, &#39;dó&#39;: 132, &#39;ní&#39;: 453, &#39;ší&#39;: 972, &#39;ír&#39;: 883, &#39;צב&#39;: 1075, &#39;בי&#39;: 1071, &#39;זמ&#39;: 1072, &#39;מי&#39;: 1074, &#39;יר&#39;: 1073, &#39;zh&#39;: 789, &#39;tj&#39;: 628, &#39;zg&#39;: 788, &#39;âq&#39;: 814, &#39;vm&#39;: 694, &#39;гл&#39;: 1034, &#39;ли&#39;: 1044, &#39;иб&#39;: 1037, &#39;бо&#39;: 1031, &#39;ок&#39;: 1053, &#39;vt&#39;: 700, &#39;wp&#39;: 725, &#39;kv&#39;: 340, &#39;wj&#39;: 719, &#39;qo&#39;: 533, &#39;mz&#39;: 409, &#39;kä&#39;: 344, &#39;äm&#39;: 818, &#39;sã&#39;: 606, &#39;ão&#39;: 817, &#39;üc&#39;: 924, &#39;日本&#39;: 1130, &#39;本資&#39;: 1132, &#39;資本&#39;: 1136, &#39;本主&#39;: 1131, &#39;主義&#39;: 1126, &#39;義発&#39;: 1134, &#39;発達&#39;: 1133, &#39;達史&#39;: 1137, &#39;史講&#39;: 1127, &#39;講座&#39;: 1135, &#39;kō&#39;: 350, &#39;rō&#39;: 577, &#39;sō&#39;: 616, &#39;èf&#39;: 832, &#39;bœ&#39;: 68, &#39;mv&#39;: 406, &#39;vö&#39;: 709, &#39;öl&#39;: 917, &#39;aü&#39;: 32, &#39;xy&#39;: 751, &#39;üz&#39;: 930, &#39;zè&#39;: 804, &#39;rx&#39;: 563, &#39;añ&#39;: 31, &#39;ño&#39;: 902, &#39;gò&#39;: 231, &#39;wq&#39;: 726, &#39;ﬂo&#39;: 1139, &#39;nœ&#39;: 456, &#39;ww&#39;: 731, &#39;pk&#39;: 507, &#39;كف&#39;: 1097, &#39;فر&#39;: 1096, &#39;رو&#39;: 1088, &#39;وب&#39;: 1105, &#39;با&#39;: 1081, &#39;او&#39;: 1080, &#39;كه&#39;: 1099, &#39;rū&#39;: 578, &#39;bā&#39;: 66, &#39;āv&#39;: 936, &#39;āb&#39;: 931, &#39;āk&#39;: 933, &#39;kī&#39;: 348, &#39;īy&#39;: 948, &#39;şa&#39;: 969, &#39;yā&#39;: 780, &#39;ād&#39;: 932, &#39;dī&#39;: 137, &#39;qf&#39;: 531, &#39;fd&#39;: 178, &#39;æb&#39;: 822, &#39;qé&#39;: 538, &#39;âs&#39;: 815, &#39;fn&#39;: 185, &#39;σπ&#39;: 1020, &#39;πm&#39;: 1016, &#39;ïl&#39;: 892, &#39;ქე&#39;: 1119, &#39;ემ&#39;: 1114, &#39;მფ&#39;: 1116, &#39;ფე&#39;: 1118, &#39;ერ&#39;: 1115, &#39;რი&#39;: 1117, &#39;uï&#39;: 685, &#39;ït&#39;: 898, &#39;dô&#39;: 133, &#39;fû&#39;: 198, &#39;lj&#39;: 360, &#39;cg&#39;: 76, &#39;جب&#39;: 1083, &#39;بر&#39;: 1082, &#39;ري&#39;: 1089, &#39;يل&#39;: 1108, &#39;فؤ&#39;: 1095, &#39;ؤا&#39;: 1076, &#39;اد&#39;: 1077, &#39;حد&#39;: 1084, &#39;دا&#39;: 1086, &#39;gɪ&#39;: 234, &#39;ɪb&#39;: 981, &#39;iː&#39;: 297, &#39;ːl&#39;: 993, &#39;fʊ&#39;: 200, &#39;ʊɑ&#39;: 984, &#39;ɑː&#39;: 979, &#39;ːd&#39;: 992, &#39;ħa&#39;: 947, &#39;jk&#39;: 306, &#39;gc&#39;: 204, &#39;hœ&#39;: 262, &#39;ïn&#39;: 893, &#39;kj&#39;: 329, &#39;wg&#39;: 716, &#39;eġ&#39;: 169, &#39;ġn&#39;: 946, &#39;hü&#39;: 261, &#39;iﬁ&#39;: 298, &#39;ﬁe&#39;: 1138, &#39;m²&#39;: 410, &#39;pv&#39;: 517, &#39;eʼ&#39;: 174, &#39;ʼs&#39;: 986, &#39;oʼ&#39;: 496, &#39;èz&#39;: 842, &#39;vœ&#39;: 710, &#39;ñe&#39;: 901, &#39;kł&#39;: 349, &#39;łó&#39;: 954, &#39;ód&#39;: 904, &#39;dź&#39;: 139, &#39;pæ&#39;: 522, &#39;æd&#39;: 823, &#39;fℝ&#39;: 201, &#39;ℝn&#39;: 1121, &#39;fâ&#39;: 194, &#39;kf&#39;: 325, &#39;jü&#39;: 316, &#39;lü&#39;: 384, &#39;kę&#39;: 347, &#39;ęp&#39;: 943, &#39;三峡&#39;: 1125, &#39;sā&#39;: 613, &#39;gz&#39;: 226, &#39;gq&#39;: 217, &#39;ōd&#39;: 957, &#39;mk&#39;: 396, &#39;uq&#39;: 668, &#39;zl&#39;: 792, &#39;gä&#39;: 227, &#39;mā&#39;: 419, &#39;āo&#39;: 935, &#39;ℝm&#39;: 1120, &#39;στ&#39;: 1021, &#39;τρ&#39;: 1023, &#39;ρα&#39;: 1017, &#39;ατ&#39;: 997, &#39;τη&#39;: 1022, &#39;ηγ&#39;: 1003, &#39;γό&#39;: 1002, &#39;ός&#39;: 1025, &#39;γι&#39;: 1000, &#39;ιώ&#39;: 1006, &#39;ώρ&#39;: 1026, &#39;ργ&#39;: 1018, &#39;γο&#39;: 1001, &#39;ος&#39;: 1014, &#39;κα&#39;: 1008, &#39;τσ&#39;: 1024, &#39;σι&#39;: 1019, &#39;ικ&#39;: 1004, &#39;κά&#39;: 1007, &#39;άς&#39;: 994, &#39;eș&#39;: 172, &#39;șt&#39;: 976, &#39;yı&#39;: 781, &#39;ıl&#39;: 949, &#39;zı&#39;: 806, &#39;ım&#39;: 950, &#39;oğ&#39;: 492, &#39;ğl&#39;: 945, &#39;vk&#39;: 692, &#39;ôk&#39;: 908, &#39;pz&#39;: 520, &#39;bř&#39;: 69, &#39;če&#39;: 939, &#39;ož&#39;: 495, &#39;ži&#39;: 974, &#39;rž&#39;: 579, &#39;žo&#39;: 975, &#39;až&#39;: 35, &#39;ač&#39;: 33, &#39;jg&#39;: 303, &#39;dö&#39;: 134, &#39;ím&#39;: 881, &#39;jö&#39;: 315, &#39;ék&#39;: 853, &#39;iç&#39;: 290, &#39;uç&#39;: 680, &#39;gx&#39;: 224, &#39;mj&#39;: 395, &#39;nț&#39;: 457, &#39;ța&#39;: 977, &#39;hk&#39;: 243, &#39;rø&#39;: 574, &#39;øn&#39;: 920, &#39;bw&#39;: 59, &#39;rü&#39;: 576, &#39;jn&#39;: 307}</code></pre>
+</div>
+</div>
+</section>
+<section id="split" class="level1" data-number="6">
+<h1 data-number="6"><span class="header-section-number">6</span> Split</h1>
+<div class="cell">
+<div class="sourceCode" id="cb22"><pre class="sourceCode numberSource python cell-code number-lines"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1"></a>xtrain, xtest, ytrain, ytest <span class="op">=</span> train_test_split(</span>
+<span id="cb22-2"><a href="#cb22-2"></a>  df_ngr_bow,</span>
+<span id="cb22-3"><a href="#cb22-3"></a>  target,</span>
+<span id="cb22-4"><a href="#cb22-4"></a>  test_size<span class="op">=</span><span class="fl">.2</span>,</span>
+<span id="cb22-5"><a href="#cb22-5"></a>  random_state<span class="op">=</span><span class="dv">42</span></span>
+<span id="cb22-6"><a href="#cb22-6"></a>)</span></code></pre></div>
+</div>
+</section>
+<section id="model" class="level1" data-number="7">
+<h1 data-number="7"><span class="header-section-number">7</span> Model</h1>
+<div class="cell">
+<div class="sourceCode" id="cb23"><pre class="sourceCode numberSource python cell-code number-lines"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1"></a>clf <span class="op">=</span> MLPClassifier(</span>
+<span id="cb23-2"><a href="#cb23-2"></a>  activation<span class="op">=</span><span class="st">&quot;logistic&quot;</span>,</span>
+<span id="cb23-3"><a href="#cb23-3"></a>  hidden_layer_sizes<span class="op">=</span>(<span class="dv">200</span>,),</span>
+<span id="cb23-4"><a href="#cb23-4"></a>  solver<span class="op">=</span><span class="st">&quot;adam&quot;</span>,</span>
+<span id="cb23-5"><a href="#cb23-5"></a>  tol<span class="op">=</span><span class="fl">.005</span>,</span>
+<span id="cb23-6"><a href="#cb23-6"></a>  verbose<span class="op">=</span><span class="va">True</span></span>
+<span id="cb23-7"><a href="#cb23-7"></a>)</span></code></pre></div>
+</div>
+<section id="fit" class="level2" data-number="7.1">
+<h2 data-number="7.1"><span class="header-section-number">7.1</span> Fit</h2>
+<div class="cell">
+<div class="sourceCode" id="cb24"><pre class="sourceCode numberSource python cell-code number-lines"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1"></a>clf.fit(xtrain, ytrain)</span></code></pre></div>
+<div class="cell-output-display">
+<style>#sk-container-id-1 {
+  /* Definition of color scheme common for light and dark mode */
+  --sklearn-color-text: black;
+  --sklearn-color-line: gray;
+  /* Definition of color scheme for unfitted estimators */
+  --sklearn-color-unfitted-level-0: #fff5e6;
+  --sklearn-color-unfitted-level-1: #f6e4d2;
+  --sklearn-color-unfitted-level-2: #ffe0b3;
+  --sklearn-color-unfitted-level-3: chocolate;
+  /* Definition of color scheme for fitted estimators */
+  --sklearn-color-fitted-level-0: #f0f8ff;
+  --sklearn-color-fitted-level-1: #d4ebff;
+  --sklearn-color-fitted-level-2: #b3dbfd;
+  --sklearn-color-fitted-level-3: cornflowerblue;
+
+  /* Specific color for light theme */
+  --sklearn-color-text-on-default-background: var(--sg-text-color, var(--theme-code-foreground, var(--jp-content-font-color1, black)));
+  --sklearn-color-background: var(--sg-background-color, var(--theme-background, var(--jp-layout-color0, white)));
+  --sklearn-color-border-box: var(--sg-text-color, var(--theme-code-foreground, var(--jp-content-font-color1, black)));
+  --sklearn-color-icon: #696969;
+
+  @media (prefers-color-scheme: dark) {
+    /* Redefinition of color scheme for dark theme */
+    --sklearn-color-text-on-default-background: var(--sg-text-color, var(--theme-code-foreground, var(--jp-content-font-color1, white)));
+    --sklearn-color-background: var(--sg-background-color, var(--theme-background, var(--jp-layout-color0, #111)));
+    --sklearn-color-border-box: var(--sg-text-color, var(--theme-code-foreground, var(--jp-content-font-color1, white)));
+    --sklearn-color-icon: #878787;
+  }
+}
+
+#sk-container-id-1 {
+  color: var(--sklearn-color-text);
+}
+
+#sk-container-id-1 pre {
+  padding: 0;
+}
+
+#sk-container-id-1 input.sk-hidden--visually {
+  border: 0;
+  clip: rect(1px 1px 1px 1px);
+  clip: rect(1px, 1px, 1px, 1px);
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  width: 1px;
+}
+
+#sk-container-id-1 div.sk-dashed-wrapped {
+  border: 1px dashed var(--sklearn-color-line);
+  margin: 0 0.4em 0.5em 0.4em;
+  box-sizing: border-box;
+  padding-bottom: 0.4em;
+  background-color: var(--sklearn-color-background);
+}
+
+#sk-container-id-1 div.sk-container {
+  /* jupyter's `normalize.less` sets `[hidden] { display: none; }`
+     but bootstrap.min.css set `[hidden] { display: none !important; }`
+     so we also need the `!important` here to be able to override the
+     default hidden behavior on the sphinx rendered scikit-learn.org.
+     See: https://github.com/scikit-learn/scikit-learn/issues/21755 */
+  display: inline-block !important;
+  position: relative;
+}
+
+#sk-container-id-1 div.sk-text-repr-fallback {
+  display: none;
+}
+
+div.sk-parallel-item,
+div.sk-serial,
+div.sk-item {
+  /* draw centered vertical line to link estimators */
+  background-image: linear-gradient(var(--sklearn-color-text-on-default-background), var(--sklearn-color-text-on-default-background));
+  background-size: 2px 100%;
+  background-repeat: no-repeat;
+  background-position: center center;
+}
+
+/* Parallel-specific style estimator block */
+
+#sk-container-id-1 div.sk-parallel-item::after {
+  content: "";
+  width: 100%;
+  border-bottom: 2px solid var(--sklearn-color-text-on-default-background);
+  flex-grow: 1;
+}
+
+#sk-container-id-1 div.sk-parallel {
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  background-color: var(--sklearn-color-background);
+  position: relative;
+}
+
+#sk-container-id-1 div.sk-parallel-item {
+  display: flex;
+  flex-direction: column;
+}
+
+#sk-container-id-1 div.sk-parallel-item:first-child::after {
+  align-self: flex-end;
+  width: 50%;
+}
+
+#sk-container-id-1 div.sk-parallel-item:last-child::after {
+  align-self: flex-start;
+  width: 50%;
+}
+
+#sk-container-id-1 div.sk-parallel-item:only-child::after {
+  width: 0;
+}
+
+/* Serial-specific style estimator block */
+
+#sk-container-id-1 div.sk-serial {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background-color: var(--sklearn-color-background);
+  padding-right: 1em;
+  padding-left: 1em;
+}
+
+
+/* Toggleable style: style used for estimator/Pipeline/ColumnTransformer box that is
+clickable and can be expanded/collapsed.
+- Pipeline and ColumnTransformer use this feature and define the default style
+- Estimators will overwrite some part of the style using the `sk-estimator` class
+*/
+
+/* Pipeline and ColumnTransformer style (default) */
+
+#sk-container-id-1 div.sk-toggleable {
+  /* Default theme specific background. It is overwritten whether we have a
+  specific estimator or a Pipeline/ColumnTransformer */
+  background-color: var(--sklearn-color-background);
+}
+
+/* Toggleable label */
+#sk-container-id-1 label.sk-toggleable__label {
+  cursor: pointer;
+  display: block;
+  width: 100%;
+  margin-bottom: 0;
+  padding: 0.5em;
+  box-sizing: border-box;
+  text-align: center;
+}
+
+#sk-container-id-1 label.sk-toggleable__label-arrow:before {
+  /* Arrow on the left of the label */
+  content: "▸";
+  float: left;
+  margin-right: 0.25em;
+  color: var(--sklearn-color-icon);
+}
+
+#sk-container-id-1 label.sk-toggleable__label-arrow:hover:before {
+  color: var(--sklearn-color-text);
+}
+
+/* Toggleable content - dropdown */
+
+#sk-container-id-1 div.sk-toggleable__content {
+  max-height: 0;
+  max-width: 0;
+  overflow: hidden;
+  text-align: left;
+  /* unfitted */
+  background-color: var(--sklearn-color-unfitted-level-0);
+}
+
+#sk-container-id-1 div.sk-toggleable__content.fitted {
+  /* fitted */
+  background-color: var(--sklearn-color-fitted-level-0);
+}
+
+#sk-container-id-1 div.sk-toggleable__content pre {
+  margin: 0.2em;
+  border-radius: 0.25em;
+  color: var(--sklearn-color-text);
+  /* unfitted */
+  background-color: var(--sklearn-color-unfitted-level-0);
+}
+
+#sk-container-id-1 div.sk-toggleable__content.fitted pre {
+  /* unfitted */
+  background-color: var(--sklearn-color-fitted-level-0);
+}
+
+#sk-container-id-1 input.sk-toggleable__control:checked~div.sk-toggleable__content {
+  /* Expand drop-down */
+  max-height: 200px;
+  max-width: 100%;
+  overflow: auto;
+}
+
+#sk-container-id-1 input.sk-toggleable__control:checked~label.sk-toggleable__label-arrow:before {
+  content: "▾";
+}
+
+/* Pipeline/ColumnTransformer-specific style */
+
+#sk-container-id-1 div.sk-label input.sk-toggleable__control:checked~label.sk-toggleable__label {
+  color: var(--sklearn-color-text);
+  background-color: var(--sklearn-color-unfitted-level-2);
+}
+
+#sk-container-id-1 div.sk-label.fitted input.sk-toggleable__control:checked~label.sk-toggleable__label {
+  background-color: var(--sklearn-color-fitted-level-2);
+}
+
+/* Estimator-specific style */
+
+/* Colorize estimator box */
+#sk-container-id-1 div.sk-estimator input.sk-toggleable__control:checked~label.sk-toggleable__label {
+  /* unfitted */
+  background-color: var(--sklearn-color-unfitted-level-2);
+}
+
+#sk-container-id-1 div.sk-estimator.fitted input.sk-toggleable__control:checked~label.sk-toggleable__label {
+  /* fitted */
+  background-color: var(--sklearn-color-fitted-level-2);
+}
+
+#sk-container-id-1 div.sk-label label.sk-toggleable__label,
+#sk-container-id-1 div.sk-label label {
+  /* The background is the default theme color */
+  color: var(--sklearn-color-text-on-default-background);
+}
+
+/* On hover, darken the color of the background */
+#sk-container-id-1 div.sk-label:hover label.sk-toggleable__label {
+  color: var(--sklearn-color-text);
+  background-color: var(--sklearn-color-unfitted-level-2);
+}
+
+/* Label box, darken color on hover, fitted */
+#sk-container-id-1 div.sk-label.fitted:hover label.sk-toggleable__label.fitted {
+  color: var(--sklearn-color-text);
+  background-color: var(--sklearn-color-fitted-level-2);
+}
+
+/* Estimator label */
+
+#sk-container-id-1 div.sk-label label {
+  font-family: monospace;
+  font-weight: bold;
+  display: inline-block;
+  line-height: 1.2em;
+}
+
+#sk-container-id-1 div.sk-label-container {
+  text-align: center;
+}
+
+/* Estimator-specific */
+#sk-container-id-1 div.sk-estimator {
+  font-family: monospace;
+  border: 1px dotted var(--sklearn-color-border-box);
+  border-radius: 0.25em;
+  box-sizing: border-box;
+  margin-bottom: 0.5em;
+  /* unfitted */
+  background-color: var(--sklearn-color-unfitted-level-0);
+}
+
+#sk-container-id-1 div.sk-estimator.fitted {
+  /* fitted */
+  background-color: var(--sklearn-color-fitted-level-0);
+}
+
+/* on hover */
+#sk-container-id-1 div.sk-estimator:hover {
+  /* unfitted */
+  background-color: var(--sklearn-color-unfitted-level-2);
+}
+
+#sk-container-id-1 div.sk-estimator.fitted:hover {
+  /* fitted */
+  background-color: var(--sklearn-color-fitted-level-2);
+}
+
+/* Specification for estimator info (e.g. "i" and "?") */
+
+/* Common style for "i" and "?" */
+
+.sk-estimator-doc-link,
+a:link.sk-estimator-doc-link,
+a:visited.sk-estimator-doc-link {
+  float: right;
+  font-size: smaller;
+  line-height: 1em;
+  font-family: monospace;
+  background-color: var(--sklearn-color-background);
+  border-radius: 1em;
+  height: 1em;
+  width: 1em;
+  text-decoration: none !important;
+  margin-left: 1ex;
+  /* unfitted */
+  border: var(--sklearn-color-unfitted-level-1) 1pt solid;
+  color: var(--sklearn-color-unfitted-level-1);
+}
+
+.sk-estimator-doc-link.fitted,
+a:link.sk-estimator-doc-link.fitted,
+a:visited.sk-estimator-doc-link.fitted {
+  /* fitted */
+  border: var(--sklearn-color-fitted-level-1) 1pt solid;
+  color: var(--sklearn-color-fitted-level-1);
+}
+
+/* On hover */
+div.sk-estimator:hover .sk-estimator-doc-link:hover,
+.sk-estimator-doc-link:hover,
+div.sk-label-container:hover .sk-estimator-doc-link:hover,
+.sk-estimator-doc-link:hover {
+  /* unfitted */
+  background-color: var(--sklearn-color-unfitted-level-3);
+  color: var(--sklearn-color-background);
+  text-decoration: none;
+}
+
+div.sk-estimator.fitted:hover .sk-estimator-doc-link.fitted:hover,
+.sk-estimator-doc-link.fitted:hover,
+div.sk-label-container:hover .sk-estimator-doc-link.fitted:hover,
+.sk-estimator-doc-link.fitted:hover {
+  /* fitted */
+  background-color: var(--sklearn-color-fitted-level-3);
+  color: var(--sklearn-color-background);
+  text-decoration: none;
+}
+
+/* Span, style for the box shown on hovering the info icon */
+.sk-estimator-doc-link span {
+  display: none;
+  z-index: 9999;
+  position: relative;
+  font-weight: normal;
+  right: .2ex;
+  padding: .5ex;
+  margin: .5ex;
+  width: min-content;
+  min-width: 20ex;
+  max-width: 50ex;
+  color: var(--sklearn-color-text);
+  box-shadow: 2pt 2pt 4pt #999;
+  /* unfitted */
+  background: var(--sklearn-color-unfitted-level-0);
+  border: .5pt solid var(--sklearn-color-unfitted-level-3);
+}
+
+.sk-estimator-doc-link.fitted span {
+  /* fitted */
+  background: var(--sklearn-color-fitted-level-0);
+  border: var(--sklearn-color-fitted-level-3);
+}
+
+.sk-estimator-doc-link:hover span {
+  display: block;
+}
+
+/* "?"-specific style due to the `<a>` HTML tag */
+
+#sk-container-id-1 a.estimator_doc_link {
+  float: right;
+  font-size: 1rem;
+  line-height: 1em;
+  font-family: monospace;
+  background-color: var(--sklearn-color-background);
+  border-radius: 1rem;
+  height: 1rem;
+  width: 1rem;
+  text-decoration: none;
+  /* unfitted */
+  color: var(--sklearn-color-unfitted-level-1);
+  border: var(--sklearn-color-unfitted-level-1) 1pt solid;
+}
+
+#sk-container-id-1 a.estimator_doc_link.fitted {
+  /* fitted */
+  border: var(--sklearn-color-fitted-level-1) 1pt solid;
+  color: var(--sklearn-color-fitted-level-1);
+}
+
+/* On hover */
+#sk-container-id-1 a.estimator_doc_link:hover {
+  /* unfitted */
+  background-color: var(--sklearn-color-unfitted-level-3);
+  color: var(--sklearn-color-background);
+  text-decoration: none;
+}
+
+#sk-container-id-1 a.estimator_doc_link.fitted:hover {
+  /* fitted */
+  background-color: var(--sklearn-color-fitted-level-3);
+}
+</style><div id="sk-container-id-1" class="sk-top-container"><div class="sk-text-repr-fallback"><pre>MLPClassifier(activation=&#x27;logistic&#x27;, hidden_layer_sizes=(200,), tol=0.005,
+              verbose=True)</pre><b>In a Jupyter environment, please rerun this cell to show the HTML representation or trust the notebook. <br />On GitHub, the HTML representation is unable to render, please try loading this page with nbviewer.org.</b></div><div class="sk-container" hidden><div class="sk-item"><div class="sk-estimator fitted sk-toggleable"><input class="sk-toggleable__control sk-hidden--visually" id="sk-estimator-id-1" type="checkbox" checked><label for="sk-estimator-id-1" class="sk-toggleable__label fitted sk-toggleable__label-arrow fitted">&nbsp;&nbsp;MLPClassifier<a class="sk-estimator-doc-link fitted" rel="noreferrer" target="_blank" href="https://scikit-learn.org/1.5/modules/generated/sklearn.neural_network.MLPClassifier.html">?<span>Documentation for MLPClassifier</span></a><span class="sk-estimator-doc-link fitted">i<span>Fitted</span></span></label><div class="sk-toggleable__content fitted"><pre>MLPClassifier(activation=&#x27;logistic&#x27;, hidden_layer_sizes=(200,), tol=0.005,
+              verbose=True)</pre></div> </div></div></div></div>
+</div>
+</div>
+</section>
+<section id="evaluate" class="level2" data-number="7.2">
+<h2 data-number="7.2"><span class="header-section-number">7.2</span> Evaluate</h2>
+<p>The accuracy is <code>{python} clf.score(xtest, ytest)</code>.</p>
+</section>
+<section id="predict" class="level2" data-number="7.3">
+<h2 data-number="7.3"><span class="header-section-number">7.3</span> Predict</h2>
+<div class="cell">
+<div class="sourceCode" id="cb25"><pre class="sourceCode numberSource python cell-code number-lines"><code class="sourceCode python"><span id="cb25-1"><a href="#cb25-1"></a>en <span class="op">=</span> <span class="st">&quot;Yeah, that’s easy for your to say, you’re Mr. White. You have a cool-sounding name. Alright look, if it’s no big deal to be Mr. Pink, do you wanna trade?&quot;</span></span>
+<span id="cb25-2"><a href="#cb25-2"></a></span>
+<span id="cb25-3"><a href="#cb25-3"></a>fr <span class="op">=</span> <span class="st">&quot;Jusqu&#39;ici tout va bien. Jusqu&#39;ici tout va bien. Jusqu&#39;ici tout va bien. Mais l&#39;important, c&#39;est pas la chute. C&#39;est l&#39;atterrissage.&quot;</span></span></code></pre></div>
+</div>
+<p>To make a prediction, we first need to preprocess the text using the ngram and bow. Remember to pass the trained vectorizer, which has learned the vocabulary.</p>
+<div class="cell">
+<div class="sourceCode" id="cb26"><pre class="sourceCode numberSource python cell-code number-lines"><code class="sourceCode python"><span id="cb26-1"><a href="#cb26-1"></a><span class="kw">def</span> my_predict(text, vectorizer, n<span class="op">=</span><span class="dv">2</span>):</span>
+<span id="cb26-2"><a href="#cb26-2"></a>  </span>
+<span id="cb26-3"><a href="#cb26-3"></a>  t <span class="op">=</span> [<span class="st">&quot; &quot;</span>.join(my_ngram(text, n))]</span>
+<span id="cb26-4"><a href="#cb26-4"></a>  pred <span class="op">=</span> clf.predict(bow_count(text, vectorizer)[<span class="dv">0</span>]) <span class="co"># [0] takes the text</span></span>
+<span id="cb26-5"><a href="#cb26-5"></a>  </span>
+<span id="cb26-6"><a href="#cb26-6"></a>  <span class="cf">return</span> pred</span></code></pre></div>
+</div>
+<p>English prediction <code>{python} my_predict(en, cvectorizer)</code>. French prediction <code>{python my_predict(fr, cvectorizer, 2)</code>.</p>
+</section>
+</section>
+
+</main>
+<!-- /main column -->
+<script id = "quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const disableStylesheet = (stylesheets) => {
+    for (let i=0; i < stylesheets.length; i++) {
+      const stylesheet = stylesheets[i];
+      stylesheet.rel = 'prefetch';
+    }
+  }
+  const enableStylesheet = (stylesheets) => {
+    for (let i=0; i < stylesheets.length; i++) {
+      const stylesheet = stylesheets[i];
+      stylesheet.rel = 'stylesheet';
+    }
+  }
+  const manageTransitions = (selector, allowTransitions) => {
+    const els = window.document.querySelectorAll(selector);
+    for (let i=0; i < els.length; i++) {
+      const el = els[i];
+      if (allowTransitions) {
+        el.classList.remove('notransition');
+      } else {
+        el.classList.add('notransition');
+      }
+    }
+  }
+  const toggleGiscusIfUsed = (isAlternate, darkModeDefault) => {
+    const baseTheme = document.querySelector('#giscus-base-theme')?.value ?? 'light';
+    const alternateTheme = document.querySelector('#giscus-alt-theme')?.value ?? 'dark';
+    let newTheme = '';
+    if(darkModeDefault) {
+      newTheme = isAlternate ? baseTheme : alternateTheme;
+    } else {
+      newTheme = isAlternate ? alternateTheme : baseTheme;
+    }
+    const changeGiscusTheme = () => {
+      // From: https://github.com/giscus/giscus/issues/336
+      const sendMessage = (message) => {
+        const iframe = document.querySelector('iframe.giscus-frame');
+        if (!iframe) return;
+        iframe.contentWindow.postMessage({ giscus: message }, 'https://giscus.app');
+      }
+      sendMessage({
+        setConfig: {
+          theme: newTheme
+        }
+      });
+    }
+    const isGiscussLoaded = window.document.querySelector('iframe.giscus-frame') !== null;
+    if (isGiscussLoaded) {
+      changeGiscusTheme();
+    }
+  }
+  const toggleColorMode = (alternate) => {
+    // Switch the stylesheets
+    const alternateStylesheets = window.document.querySelectorAll('link.quarto-color-scheme.quarto-color-alternate');
+    manageTransitions('#quarto-margin-sidebar .nav-link', false);
+    if (alternate) {
+      enableStylesheet(alternateStylesheets);
+      for (const sheetNode of alternateStylesheets) {
+        if (sheetNode.id === "quarto-bootstrap") {
+          toggleBodyColorMode(sheetNode);
+        }
+      }
+    } else {
+      disableStylesheet(alternateStylesheets);
+      toggleBodyColorPrimary();
+    }
+    manageTransitions('#quarto-margin-sidebar .nav-link', true);
+    // Switch the toggles
+    const toggles = window.document.querySelectorAll('.quarto-color-scheme-toggle');
+    for (let i=0; i < toggles.length; i++) {
+      const toggle = toggles[i];
+      if (toggle) {
+        if (alternate) {
+          toggle.classList.add("alternate");     
+        } else {
+          toggle.classList.remove("alternate");
+        }
+      }
+    }
+    // Hack to workaround the fact that safari doesn't
+    // properly recolor the scrollbar when toggling (#1455)
+    if (navigator.userAgent.indexOf('Safari') > 0 && navigator.userAgent.indexOf('Chrome') == -1) {
+      manageTransitions("body", false);
+      window.scrollTo(0, 1);
+      setTimeout(() => {
+        window.scrollTo(0, 0);
+        manageTransitions("body", true);
+      }, 40);  
+    }
+  }
+  const isFileUrl = () => { 
+    return window.location.protocol === 'file:';
+  }
+  const hasAlternateSentinel = () => {  
+    let styleSentinel = getColorSchemeSentinel();
+    if (styleSentinel !== null) {
+      return styleSentinel === "alternate";
+    } else {
+      return false;
+    }
+  }
+  const setStyleSentinel = (alternate) => {
+    const value = alternate ? "alternate" : "default";
+    if (!isFileUrl()) {
+      window.localStorage.setItem("quarto-color-scheme", value);
+    } else {
+      localAlternateSentinel = value;
+    }
+  }
+  const getColorSchemeSentinel = () => {
+    if (!isFileUrl()) {
+      const storageValue = window.localStorage.getItem("quarto-color-scheme");
+      return storageValue != null ? storageValue : localAlternateSentinel;
+    } else {
+      return localAlternateSentinel;
+    }
+  }
+  const darkModeDefault = true;
+  let localAlternateSentinel = darkModeDefault ? 'alternate' : 'default';
+  // Dark / light mode switch
+  window.quartoToggleColorScheme = () => {
+    // Read the current dark / light value 
+    let toAlternate = !hasAlternateSentinel();
+    toggleColorMode(toAlternate);
+    setStyleSentinel(toAlternate);
+    toggleGiscusIfUsed(toAlternate, darkModeDefault);
+  };
+  // Ensure there is a toggle, if there isn't float one in the top right
+  if (window.document.querySelector('.quarto-color-scheme-toggle') === null) {
+    const a = window.document.createElement('a');
+    a.classList.add('top-right');
+    a.classList.add('quarto-color-scheme-toggle');
+    a.href = "";
+    a.onclick = function() { try { window.quartoToggleColorScheme(); } catch {} return false; };
+    const i = window.document.createElement("i");
+    i.classList.add('bi');
+    a.appendChild(i);
+    window.document.body.appendChild(a);
+  }
+  // Switch to dark mode if need be
+  if (hasAlternateSentinel()) {
+    toggleColorMode(true);
+  } else {
+    toggleColorMode(false);
+  }
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const onCopySuccess = function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  }
+  const getTextToCopy = function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+    text: getTextToCopy
+  });
+  clipboard.on('success', onCopySuccess);
+  if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+    // For code content inside modals, clipBoardJS needs to be initialized with a container option
+    // TODO: Check when it could be a function (https://github.com/zenorocha/clipboard.js/issues/860)
+    const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+      text: getTextToCopy,
+      container: window.document.getElementById('quarto-embedded-source-code-modal')
+    });
+    clipboardModal.on('success', onCopySuccess);
+  }
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+    var mailtoRegex = new RegExp(/^mailto:/);
+      var filterRegex = new RegExp('/' + window.location.host + '/');
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+        // undo the damage that might have been done by quarto-nav.js in the case of
+        // links that we want to consider external
+        if (link.dataset.originalHref !== undefined) {
+          link.href = link.dataset.originalHref;
+        }
+      }
+    }
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+    const config = {
+      allowHTML: true,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start',
+    };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      if (note) {
+        return note.innerHTML;
+      } else {
+        return "";
+      }
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      // TODO in 1.5, we should make sure this works without a callout special case
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+</body>
+
+</html>
