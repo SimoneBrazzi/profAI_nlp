@@ -1,0 +1,175 @@
+---
+author: "Simone Brazzi"
+title: "Topic Modeling"
+date: "2024-08-25"
+format:
+  html:
+    self-contained: true
+    toc: true
+    toc-title: "Table of Contents"
+    toc-depth: 3
+    number-sections: true
+    number-depth: 3
+    embed-resources: true
+    self-contained-math: true
+    anchor-sections: true
+    smooth-scroll: true
+    highlight-style: monokai
+    code-line-numbers: true
+    code-copy: true
+    code-link: true
+    other-links:
+      - text: "Latent Dirilecht Allocation"
+        href: https://www.jmlr.org/papers/volume3/blei03a/blei03a.pdf
+    theme:
+      dark: darkly
+      light: flatly
+  ipynb: default
+format-links: [ipynb]
+
+engine: knitr
+execute:
+  cache: false
+  freeze: true
+---
+
+# Notes
+
+**Topic modeling** is a nlp task which assign the topic to text.
+
+- Cluster of word by topic.
+- Cluster of document by topic.
+
+**Unsupervised learning**. It doesn't find the topic, but clusters document by topic.
+
+**Latent Dirichlet Allocation** or **LDA** is a generative statistical model which can explain why parts of data are similar.
+A document is a mix of arguments. Each word has a topic. So a document is a group of words, each with its own topic. The document will have as many topics as the ones given by the words.
+
+How it works:
+1. Number of words.
+2. Topic distributions.
+3. Document word generation:
+- Select a topic using the aforementionend topic distribution.
+- Select a word with the probability it is in the topic.
+
+LDA use this algorithm, but upside down.
+1. Randomly assign each word to a topic.
+2. For each document:
+- $P(topic t | document d)$.
+- For word in document: for topic:
+  * $p(word w | topic t)$
+  * $p(topic t | document d) * p(word w | topic t)$
+- Assign word to a topic given the resulting probability.
+
+::: {.callout-important}
+The more the heterogeneity the easier it is to assign topic.
+:::
+
+LDA generates 2 matrices:
+1. Topic-word matrix. $P(word w | topic t)$ P(word belongs to topic).
+1. Document-topic matrix. $P(topic t | document d)$ P(topic belongs to document).
+
+# Import
+```{r}
+#| output: false
+library(tidyverse, verbose = FALSE)
+library(gt)
+library(reticulate)
+```
+
+```{python}
+import pandas as pd
+import gensim
+from gensim.utils import simple_preprocess
+import nltk
+# download stopwords
+nltk.download("stopwords")
+# import stopwords
+from nltk.corpus import stopwords
+stop_words = stopwords.words("english")
+
+import gensim.corpora as corpora
+```
+
+# Dataset
+
+```{python}
+df = pd.read_csv("~/R/profAI_nlp/datasets/Lezione_7-Topic_modeling/dataset_Research_Article.csv")
+```
+
+```{r}
+py$df %>% 
+  head() %>% 
+  gt()
+```
+
+First of all, we need to clean the dataset.
+
+# Preprocessing
+
+We can use the preprocess in the `gensim`.
+Before, we need the documents and to create 2 functions for the preprocessing and removal of stopwords.
+
+```{python}
+documents = df.TITLE + " " + df.ABSTRACT
+```
+
+```{python}
+def sent_to_words(items):
+  
+  for item in items:
+    # return which works when the for ends, giving a list
+    yield(simple_preprocess(
+      item,
+      deacc=True # remove punctuation
+      )
+      )
+def remove_stopwords(texts):
+  """
+  text: {lst}
+  """
+  return [[word for word in words if word not in stop_words and len(word) >= 5] for words in texts]
+
+data_words = list(sent_to_words(documents))
+data_words = remove_stopwords(data_words)
+```
+
+Now we need to vectorize the corpus as a bag of word using the count vectorizer in `doc2bow`.
+
+
+## Vectorization
+```{python}
+id2word = corpora.Dictionary(data_words)
+
+corpus = [id2word.doc2bow(text) for text in data_words]
+```
+
+# Model
+
+```{python}
+num_topics = 10 # number of topics for the model
+
+lda_model = gensim.models.LdaMulticore(
+  corpus=corpus,
+  id2word=id2word,
+  num_topics=num_topics,
+  passes=3
+  )
+```
+
+```{python}
+lda_model.print_topic(topicno=3)
+```
+
+```{python}
+doc_lda = lda_model[corpus]
+```
+
+```{python}
+doc = "NETHIC: A system for automatic text classification using neural networks and hierarchical taxonomies. This paper presents NETHIC, a software system for the automatic classification of textual documents based on hierarchical taxonomies and artificial neural networks."
+
+document = id2word.doc2bow(simple_preprocess(doc))
+```
+
+Index: `{python} lda_model[document][0][0]`.
+Topic: `{python} lda_model[document][0][1]`.

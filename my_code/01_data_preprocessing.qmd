@@ -27,11 +27,6 @@ execute:
   freeze: true
 ---
 
-```{r}
-#| echo: false
-renv::use_python("/Users/simonebrazzi/venv/nlp/bin/python3")
-```
-
 # Data Cleaning
 
 Pulizia di dataset testuali. Uno dei primi step è trasformare il testo in un formato **standard**: **lowercase**.

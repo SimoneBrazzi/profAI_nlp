@@ -28,11 +28,6 @@ execute:
   freeze: true
 ---
 
-```{r}
-#| echo: false
-renv::use_python("/Users/simonebrazzi/venv/nlp/bin/python3")
-```
-
 # Intro
 
 Sentiment analysis of the text to understand if it is positive or negative.
@@ -72,7 +67,6 @@ import spacy
 import string
 from nltk.corpus import stopwords
 import re
-
 ```
 
 # Dataset
@@ -113,20 +107,16 @@ def data_cleaner(df):
     sentence = ' '.join(token.lemma_ for token in document)
     sentence = ' '.join(word for word in sentence.split() if word not in english_stopwords)
     sentence = re.sub("\d", "", sentence)
-    df_to_return.append(sentence)
     
   return df_to_return
 ```
-
-## Data cleaning
 
 ```{python}
 reviews_cleaned = []
 for r in reviews:
   reviews_cleaned.append(data_cleaner(r))
-
-reviews_cleaned[0]
 ```
+
 
 ```{python}
 xtrain, xtest, ytrain, ytest = train_test_split(
@@ -149,10 +139,43 @@ xtest = vec.transform(xtest) # only transform because we fit on the train and av
 ## Fit
 ```{python}
 model = MultinomialNB()
-model.fit(x, y)
+model.fit(xtrain, ytrain)
+```
+
+## Evaluate
+
+```{python}
+model.score(xtest, ytest)
 ```
 
 
+## Predict
 
+### Positive sentence
+```{python}
+sentence = "this course is very beautiful, fun and simple!"
+sentence_cleaned = data_cleaner(sentence)
+sentence_cv = vec.transform([sentence_cleaned])
+model.predict(sentence_cv)
+```
 
+To get the probability of the prediction:
+
+```{python}
+model.predict_proba(sentence_cv)
+```
+
+### Negative sentence
+```{python}
+sentence = "this course is useless, difficult and ugly."
+sentence_cleaned = data_cleaner(sentence)
+sentence_cv = vec.transform([sentence_cleaned])
+model.predict(sentence_cv)
+```
+
+To get the probability of the prediction:
+
+```{python}
+model.predict_proba(sentence_cv)
+```
 

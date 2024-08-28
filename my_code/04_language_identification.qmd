@@ -28,11 +28,6 @@ execute:
   freeze: true
 ---
 
-```{r}
-#| echo: false
-renv::use_python("/Users/simonebrazzi/venv/nlp/bin/python3")
-```
-
 # Notes
 
 Foundamental task for other tasks as classification or speech tagging.

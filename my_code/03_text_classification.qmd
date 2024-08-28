@@ -27,11 +27,6 @@ execute:
   freeze: true
 ---
 
-```{r}
-#| echo: false
-renv::use_python("/Users/simonebrazzi/venv/nlp/bin/python3")
-```
-
 # Import
 
 ```{python}
