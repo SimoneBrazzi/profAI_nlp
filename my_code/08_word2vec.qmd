@@ -1,0 +1,281 @@
+---
+author: "Simone Brazzi"
+title: "Word Embedding and Word2Vec"
+date: "2024-09-03"
+format:
+  html:
+    self-contained: true
+    toc: true
+    toc-title: "Table of Contents"
+    toc-depth: 3
+    number-sections: true
+    number-depth: 3
+    embed-resources: true
+    self-contained-math: true
+    anchor-sections: true
+    smooth-scroll: true
+    highlight-style: monokai
+    code-line-numbers: true
+    code-copy: true
+    code-link: true
+    other-links:
+      - text: "Efficient Estimation of Word Representations in Vector Space"
+        href: https://arxiv.org/pdf/1301.3781
+    theme:
+      dark: darkly
+      light: flatly
+  ipynb: default
+format-links: [ipynb]
+
+engine: knitr
+execute:
+  cache: false
+  freeze: true
+---
+
+# Notes
+
+The most important model for NLP is **Word2Vec**. It lets vectorize word while associate a **semantic value**.
+
+For comparison, using a bag of word creates a dictionary without the stop words.
+Each sentence is a vector, which reprent it based on the number of words in the dict.
+It is computationally expensive, because if the dict is big and the sentence is not, there is a vector with lots of 0. Also, we just know the frequency of the word.
+
+- sequence information loss. Order of word.
+- each sentence has a number of features equals to the words in the dict.
+
+**Word Embedding** generates a vectorial space in which sentence's vector closest to each other have similar semantic meaning.
+
+Cosin similarity instead of euclidean distance.
+
+$$
+similarity = cos(\theta) = \frac{\sum_{i=1}^{N}{A_i}{B_i}}{\sqrt{\sum_{i=1}^{N}{A(i)^2}}{\sqrt{\sum_{i=1}^{N}{B(i^2)}}} }
+$$
+
+cosine similarity refers to the angle between 2 vectors.
+
+PROs
+- saves sequence infos.
+- dimensionality reduction.
+- measures similarity of words.
+
+Word2Vec uses 2 approaches:
+- CBOW. From the context of t-k words and t+k words creates the windows for the input to the NN. The NN tries to predict the context.
+- Skip-gram. The opposite, from word to context.
+
+The model can use also the combination of the 2 methods.
+
+Final matrix has $N*K$ dimensions:
+- N, number of words in the dict.
+- K, vector of each word.
+
+# Import
+
+```{r}
+#| output: false
+library(tidyverse, verbose = FALSE)
+library(gt)
+library(reticulate)
+```
+
+```{python}
+import string
+import spacy
+from nltk.corpus import stopwords
+import re
+import numpy as np
+
+from gensim.models import Word2Vec
+import gensim.downloader
+from scipy.spatial.distance import cosine
+print(list(gensim.downloader.info()["models"].keys()))
+```
+
+The last number is the dimensionality of the vector of the words. The bigger the more semantically accurate the model is.
+
+```{python}
+glove_vector = gensim.downloader.load("glove-wiki-gigaword-300")
+```
+
+Lets test the model!
+
+```{python}
+glove_vector.most_similar("twitter")
+```
+
+Lets get the vector which represents the semantic value of the word twitter.
+```{python}
+vector_twitter = glove_vector.get_vector("twitter")
+vector_twitter
+```
+
+```{python}
+vector_apple = glove_vector.get_vector("apple")
+vector_orange = glove_vector.get_vector("orange")
+vector_juice = glove_vector.get_vector("juice")
+```
+
+Using `scipy.spatial` we can calculate the **cosine similarity**.
+
+```{python}
+1 - cosine(vector_orange, vector_apple)
+```
+
+This two words, for this model, are not that similar.
+
+Lets test some word similarity.
+
+```{python}
+1 - cosine(vector_twitter, vector_orange)
+```
+
+```{python}
+1 - cosine(vector_juice, vector_orange)
+```
+
+```{python}
+vector_dog = glove_vector.get_vector("dog")
+vector_cat = glove_vector.get_vector("cat")
+1- cosine(vector_dog, vector_cat)
+```
+
+# Corpus Embeddings
+
+We can also use this method to calculate similarity between different sentences. The result will be a vector which is the avg of the vectors of the single words.
+
+```{python}
+sentences = ["Actually, I was thinking of that poor devil you fed to the dogs today, D'Artagnan. And I was wondering what Dumas would make of all this.",
+"Come again?",
+"Alexander Dumas. He wrote 'The Three Musketeers'. I figured you must be an admirer. You named your slave after his novel's lead character. If Alexander Dumas had been there today, I wonder what he would have made of it?",
+"You doubt he\'d approve?",
+"Yes. His approval would be a dubious proposition at best.",
+"Soft hearted Frenchy?",
+"Alexander Dumas is black."
+]
+```
+
+Define `data_cleaner` function.
+```{python}
+english_stopwords = stopwords.words("english")
+nlp = spacy.load("en_core_web_sm")
+punctuation = set(string.punctuation )
+
+def data_cleaner(sentence):
+  
+  sentence = sentence.lower()
+  for c in string.punctuation:
+    sentence = sentence.replace(c, " ")
+  document = nlp(sentence)
+  sentence = " ".join(token.lemma_ for token in document)
+  sentence = " ".join(word for word in sentence.split() if word not in english_stopwords)
+  sentence = re.sub("\d", "", sentence)
+  
+  return sentence.split()
+```
+
+```{python}
+def avg_vector(sentence):
+  
+  # vector of 300 zeros
+  vector = np.zeros(300)
+  to_remove = 0
+  for word in sentence:
+    # if word in model
+    if word in glove_vector.key_to_index.keys():
+      # sum to our initial vector the vector of the actual word
+      vector += glove_vector.get_vector(word)
+    else: # if word not in model
+      # number of words to remove
+      to_remove += 1
+  # if all the words we tired to vectorize are not in the corpus
+  if len(sentence) == to_remove:
+    # return the zeros vector
+    return np.zeros(300)
+  
+  # calculate the avg
+  return vector / (len(sentence) - to_remove)
+```
+
+```{python}
+vectors = []
+
+for sentence in sentences:
+  vectors.append(avg_vector(data_cleaner(sentence)))
+```
+
+```{python}
+len(vectors)
+```
+
+
+```{python}
+1 - cosine(vectors[0], vectors[1])
+1 - cosine(vectors[0], vectors[5])
+```
+
+# Exerecise
+
+```{python}
+import pandas as pd
+import gensim
+from gensim.utils import simple_preprocess
+import nltk
+# download stopwords
+nltk.download("stopwords")
+# import stopwords
+from nltk.corpus import stopwords
+stop_words = stopwords.words("english")
+
+import gensim.corpora as corpora
+```
+
+
+```{python}
+df = pd.read_csv("~/R/profAI_nlp/datasets/Lezione_7-Topic_modeling/dataset_Research_Article.csv")
+
+df.columns = df.columns.str.lower()
+
+x = df.title + " " + df.abstract
+```
+
+```{python}
+1 - cosine(avg_vector(x[0]), avg_vector(x[1000]))
+```
+
+# Solution
+
+```{python}
+import pandas as pd
+```
+
+```{python}
+df = pd.read_csv("~/R/profAI_nlp/datasets/Lezione_7-Topic_modeling/dataset_Research_Article.csv")
+x = df.TITLE
+```
+
+```{python}
+vectors = [avg_vector(data_cleaner(doc)) for doc in x]
+```
+
+```{python}
+def most_similar(vectors, index):
+  
+  # index is the one we want to look at
+  similarity = 0
+  index_similar_doc = 0
+  
+  for i in range(0, len(vectors)):
+    if i != index and vectors[i].all() != np.zeros(300).all():
+      if 1 - cosine(vectors[index], vectors[i]) > similarity:
+        index_similar = i
+        similarity = 1 - cosine(vectors[index], vectors[i])
+        
+    return similarity, index_similar_doc
+```
+
+```{python}
+most_similar(vectors, 890)
+```
+
+
+

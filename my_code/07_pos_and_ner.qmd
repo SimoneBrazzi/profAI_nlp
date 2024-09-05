@@ -1,0 +1,198 @@
+---
+author: "Simone Brazzi"
+title: "Part of Speech Tagging and Named Entity Recognition"
+date: "2024-08-28"
+format:
+  html:
+    self-contained: true
+    toc: true
+    toc-title: "Table of Contents"
+    toc-depth: 3
+    number-sections: true
+    number-depth: 3
+    embed-resources: true
+    self-contained-math: true
+    anchor-sections: true
+    smooth-scroll: true
+    highlight-style: monokai
+    code-line-numbers: true
+    code-copy: true
+    code-link: true
+    theme:
+      dark: darkly
+      light: flatly
+  ipynb: default
+format-links: [ipynb]
+
+engine: knitr
+execute:
+  cache: false
+  freeze: true
+---
+
+# Notes
+
+## POS
+
+**Part of Speech tagging** is the process which identifies the part of speech for each word in the text. they can be adj, adv, aux, conj, noun, space, verb, ecc.
+
+Methods:
+- Lessical. It uses frequency of the word to assign the tag.
+- Rules based. If it ends with "are", it is a verb.
+- Probabilisti. Sintactic probability.
+- Deep Learning. Using RNN, ad hoc models.
+
+POS it is at the based of:
+- Lemmatization.
+- Word disambiguation.
+- Named Entity Recocgnition.
+
+## NER
+
+**Named Entity Recognition**. It is **Information Extraction**: it identifies text entities ad assign them to the semantic categories.
+They can be person, fac, org, gpe, event, language, date, ecc.
+
+Methods:
+- Rule based.
+- Stochastic.
+- ML or DL.
+
+Libraries:
+- GATE.
+- OpenNLP.
+- SpaCy.
+
+# Import
+
+```{r}
+#| output: false
+library(tidyverse, verbose = FALSE)
+library(gt)
+library(reticulate)
+```
+
+# POS
+
+## Import
+
+```{python}
+import spacy
+
+nlp = spacy.load("en_core_web_sm")
+```
+
+
+Example.
+```{python}
+sentence = "This is a first sentence for our example"
+```
+
+To preprocess the text.
+
+```{python}
+doc = nlp(sentence)
+```
+
+Doc is made by tokens.
+
+```{python}
+for token in doc:
+  print(f"{token} : {token.pos_}")
+```
+
+# NER
+
+```{python}
+sentence = "Amazon is one of the 3 best companies for ecommerce in Europe."
+
+doc = nlp(sentence)
+
+for token in doc:
+  print(f"{token} : {token.ent_type_}")
+```
+
+NER lets also visualize the results with a web UI.
+
+```{python}
+#| eval: false
+import spacy.displacy as displacy
+
+displacy.serve(doc, style="ent")
+```
+
+```{python}
+sentence = "The White House is the official residence and workplace of the presidente of the United States."
+
+doc = nlp(sentence)
+
+for token in doc:
+  print(f"{token} : {token.ent_type_}")
+
+```
+
+As you can see, each word in "the white house" is labeled as ORG.
+
+# Exercise
+
+Using the cleaned 20newsgroup, extract for each document ORG, DATE, PERSON and LOC.
+
+## Import
+
+```{python}
+import pandas as pd
+```
+
+```{python}
+df = pd.read_csv("~/R/profAI_nlp/datasets/Lezione_1-data_cleaning/dataset_cleaned.csv")
+df.columns
+x = df.data
+```
+
+```{python}
+d = {}
+for sentence in x[:5]:
+  docs = nlp(sentence)
+  for token in docs:
+    if token.ent_type_ in ["ORG", "DATE", "PERSON", "LOC"]:
+      d[token.ent_type_] = token
+
+d
+```
+
+```{python}
+docs = [nlp(sentence) for sentence in x[:5]]
+
+d = {}
+for doc in docs:
+  for token in doc:
+    if token.ent_type_ in ["ORG", "DATE", "PERSON", "LOC"]:
+      if token.ent_type_ not in d:
+        d[token.ent_type_] = []
+      d[token.ent_type_].append(token)
+
+
+d
+```
+
+## Solution
+
+```{python}
+def entities(sentence):
+  
+  to_return = {
+    "ORG" : [],
+    "DATE" : [],
+    "PERSON" : [],
+    "LOC" : []
+    }
+  doc = nlp(sentence)
+  for token in doc:
+    if str(token.ent_type_) in ["ORG", "DATE", "PERSON", "LOC"]:
+      to_return[str(token.ent_type_)].appen(str(token))
+  
+  return to_return
+```
+
+
+
+
