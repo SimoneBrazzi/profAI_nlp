@@ -33,6 +33,9 @@ execute:
   freeze: true
 ---
 
+
+
+
 # Notes
 
 **Topic modeling** is a nlp task which assign the topic to text.
@@ -73,6 +76,9 @@ LDA generates 2 matrices:
 2. Document-topic matrix. $P(topic \ t | document \ d)$ P(topic belongs to document).
 
 # Import
+
+
+
 ```{r}
 #| output: false
 library(tidyverse, verbose = FALSE)
@@ -94,7 +100,13 @@ stop_words = stopwords.words("english")
 import gensim.corpora as corpora
 ```
 
+
+
+
 # Dataset
+
+
+
 
 ```{python}
 df = pd.read_csv("~/R/profAI_nlp/datasets/Lezione_7-Topic_modeling/dataset_Research_Article.csv")
@@ -106,12 +118,18 @@ py$df %>%
   gt()
 ```
 
+
+
+
 First of all, we need to clean the dataset.
 
 # Preprocessing
 
 We can use the preprocess in the `gensim`.
 Before, we need the documents and to create 2 functions for the preprocessing and removal of stopwords.
+
+
+
 
 ```{python}
 documents = df.TITLE + " " + df.ABSTRACT
@@ -137,17 +155,29 @@ data_words = list(sent_to_words(documents))
 data_words = remove_stopwords(data_words)
 ```
 
+
+
+
 Now we need to vectorize the corpus as a bag of word using the count vectorizer in `doc2bow`.
 
 
 ## Vectorization
+
+
+
 ```{python}
 id2word = corpora.Dictionary(data_words)
 
 corpus = [id2word.doc2bow(text) for text in data_words]
 ```
 
+
+
+
 # Model
+
+
+
 
 ```{python}
 num_topics = 10 # number of topics for the model
@@ -174,5 +204,9 @@ doc = "NETHIC: A system for automatic text classification using neural networks 
 document = id2word.doc2bow(simple_preprocess(doc))
 ```
 
+
+
+
 Index: `{python} lda_model[document][0][0]`.
 Topic: `{python} lda_model[document][0][1]`.
+

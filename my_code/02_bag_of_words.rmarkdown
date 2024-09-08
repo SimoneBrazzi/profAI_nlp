@@ -1,0 +1,312 @@
+---
+author: "Simone Brazzi"
+title: "Bag of Words"
+date: "2024-08-17"
+format:
+  html:
+    toc: true
+    toc-title: "Table of Contents"
+    toc-depth: 3
+    number-sections: true
+    number-depth: 3
+    embed-resources: true
+    anchor-sections: true
+    smooth-scroll: true
+    highlight-style: monokai
+    code-line-numbers: true
+    code-copy: true
+    code-link: true
+    theme:
+      dark: darkly
+      light: flatly
+  ipynb: default
+format-links: [ipynb]
+engine: knitr
+execute:
+  cache: true
+  freeze: true
+---
+
+```{python}
+from sklearn.feature_extraction.text import CountVectorizer
+```
+
+
+
+
+Ad hoc dataset for example purpouse.
+
+
+
+```{python}
+corpus = [
+  "This is the first document.",
+  "This document is the second document.",
+  "And this is the third one.",
+  "Is this the first document?"
+]
+```
+
+
+
+
+There are wanted errors to check the algorithm.
+
+# Count vectorizer
+
+Instatiate the vectorizer.
+
+
+
+
+```{python}
+cv = CountVectorizer()
+```
+
+
+
+
+Fit_transform to vectorize the corpus.
+
+
+
+
+```{python}
+vectorized_corpus = cv.fit_transform(corpus)
+```
+
+
+
+
+Now we can check the features, so the vocab generated with cv.
+
+
+
+
+```{python}
+cv.get_feature_names_out()
+```
+
+
+
+
+There are `python len(cv.get_feature_names_out())`.
+
+Another way to visualize the vocab content is
+
+
+
+
+```{python}
+cv.vocabulary_
+```
+
+
+
+
+This is a dictionary with the position of the word in the document.
+
+We can print the vectorized corpus as an array. Note that the vocab has type `python type(vectorized_corpus)`.
+
+
+
+
+```{python}
+vectorized_corpus.toarray()
+```
+
+
+
+
+Each element of the matrix is an array and is a vectorized representation of the initial corpus.
+
+
+If we want to vectorize a new document using the already fitted cv, we have to just do a `fit` and not a `fit_transform`.
+Usually a set of features is the same, but the classification task has different observations. We can leverage the corpus.
+
+
+
+
+```{python}
+new_corpus = ["This is a new item"]
+
+vectorized_new_corpus = cv.transform(new_corpus)
+
+vectorized_new_corpus.toarray()
+```
+
+
+
+
+Elements 4 and 9 are the already known features. The new ones are not used for the vectorization.
+
+# TF-IDF
+
+
+
+
+```{python}
+from sklearn.feature_extraction.text import TfidfVectorizer
+```
+
+```{python}
+tfidfv = TfidfVectorizer()
+
+vectorizer_tf_corpus = tfidfv.fit_transform(corpus)
+```
+
+
+
+
+In this case, the features are
+
+
+
+
+```{python}
+tfidfv.get_feature_names_out()
+```
+
+
+
+
+Whilst the vocab is
+
+
+
+
+```{python}
+vectorizer_tf_corpus.toarray()
+```
+
+
+
+
+Values are between [0, 1].
+
+What we have to do to convert a real dataset to a vectorized form is to clean a dataset so it is machine readable.
+
+First of all, the function already created.
+
+
+
+```{python}
+import spacy
+import string
+from nltk.corpus import stopwords
+import re
+
+english_stopwords = stopwords.words("english")
+nlp = spacy.load("en_core_web_sm")
+punctuation = set(string.punctuation)
+
+def data_cleaner(sentence):
+  
+  # lowercasing
+  sentence = sentence.lower()
+  # punctuation removal
+  for c in string.punctuation:
+    sentence = sentence.replace(c, " ")
+  # lemming
+  document = nlp(sentence)
+  sentence = " ".join(token.lemma_ for token in document)
+  # stopwords
+  sentence = " ".join(word for word in sentence.split() if word not in english_stopwords)
+  # remove numbers
+  sentence = re.sub("\d", "", sentence)
+  # remove multiple whitespaces
+  sentence = re.sub(" +", " ", sentence)
+  
+  return sentence
+```
+
+
+
+
+Lets look if the function is properly working with this corpus.
+
+
+
+
+```{python}
+cleaned_corpus = [data_cleaner(doc) for doc in corpus]
+cleaned_corpus
+```
+
+
+
+
+It is working. REMEBER! cleaning lets reduce the dimensionality, so the vectors are smaller and easier to manage for the model.
+
+
+
+
+```{python}
+import pandas
+
+df = pandas.read_csv("~/R/profAI_nlp/datasets/Lezione_1-data_cleaning/dataset_cleaned.csv")
+df.head()
+```
+
+
+
+
+We can vectorize the dataset using one of the 2 ways to weight the words. TFIDF is usually the preferred one.
+
+
+
+
+```{python}
+vectorized_df = tfidfv.fit_transform(df.data)
+```
+
+
+
+
+This is the vocabulary created.
+
+
+
+
+```{python}
+tfidfv.vocabulary_
+```
+
+
+
+
+It is a `dict` with word : frequency structure. We think to filter the word with a min and max frequency.
+
+Each document is represented with a vector of `{python} len(tfidfv.vocabulary_)`, which is a lot. We have to reduce the dimensionality of the vocabulary!
+
+`min_df` is the minimum relative frequency in the dictionary. We set a 1% frequency.
+`max_df` is the same, but opposite. We set if to 90%.
+
+
+
+
+```{python}
+tfidfv = TfidfVectorizer(
+  min_df=0.001,
+  max_df=0.95
+  )
+
+vectorized_df = tfidfv.fit_transform(df.data)
+```
+
+
+
+
+The dictionary is defenitly smaller, considering it is `{python} len(tfidfv.vocabulary_)` long.
+
+
+
+
+```{python}
+tfidfv.vocabulary_
+```
+
+```{python}
+vectorized_df.toarray()[0]
+```
+

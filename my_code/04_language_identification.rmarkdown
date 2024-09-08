@@ -1,0 +1,328 @@
+---
+author: "Simone Brazzi"
+title: "Language Identification"
+date: "2024-08-21"
+format:
+  html:
+    self-contained: true
+    toc: true
+    toc-title: "Table of Contents"
+    toc-depth: 3
+    number-sections: true
+    number-depth: 3
+    embed-resources: true
+    anchor-sections: true
+    smooth-scroll: true
+    highlight-style: monokai
+    code-line-numbers: true
+    code-copy: true
+    code-link: true
+    theme:
+      dark: darkly
+      light: flatly
+  ipynb: default
+format-links: [ipynb]
+engine: knitr
+execute:
+  cache: false
+  freeze: true
+---
+
+
+
+
+# Notes
+
+Foundamental task for other tasks as classification or speech tagging.
+
+## N-grams
+
+- It is an element of a sentence or word.
+- Useful for NLP, DNA sequence and protein sequence.
+- Predict word.
+- Generate text.
+- Conditional probability -> Markov's chain to predict future word using previous ones.
+
+$$
+P(X_i | X_{i-1}, \ ...\ , X_{i - (n - 1)})
+$$
+Limits:
+- **curse of dimensionality**.
+- **OOV**, Out Of Vocabulary grams. There is the need for a gram for these OOV.
+
+Types:
+- 2-grams or bi-grams. 2 words for each.
+- 3-grams.
+
+It depends on the contest.
+
+The smaller the gram, the general it is, the higher the vocabulary dimension.
+
+The n-gram approach can avoid high dimensionality, meaning avoiding too many zeros in the vectors.
+
+# Import
+
+
+
+
+```{python}
+from nltk import ngrams
+import pandas as pd
+
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.model_selection import train_test_split
+from sklearn.neural_network import MLPClassifier
+```
+
+
+
+
+# How to create the n-grams
+
+
+
+
+```{python}
+sentence = "Questa è una frase di prova in lingua italiana."
+n = 2 # n-grams
+
+ngrams_2 = ngrams(
+  sequence=sentence,
+  n=n
+  )
+```
+
+
+
+
+ngrams_2 is a zip file. It has to been iterated.
+
+
+
+
+```{python}
+[n for n in ngrams_2]
+```
+
+
+
+
+
+We can create an ngram of 10 charachters.
+
+
+
+```{python}
+ngram_ita = ngrams(sentence, 10)
+
+["".join(n) for n in ngram_ita]
+```
+
+
+
+
+Next step, we create a function which create a ngrammed dataset.
+
+
+
+
+```{python}
+def my_ngram(sentence, n):
+  ngram_sentence = ngrams(sentence, n)
+  return ["".join(n) for n in ngram_sentence]
+
+# test
+my_ngram("Ciao sono Simone", 2)
+```
+
+
+
+
+# Dataset
+
+
+
+
+```{python}
+df = pd.read_csv("~/R/profAI_nlp/datasets/Lezione_4-language_detection/dataset.csv")
+```
+
+```{python}
+df.language.value_counts()
+```
+
+
+
+
+The dataset is perfectly balanced.
+
+Now we filter for some languages.
+
+
+
+
+```{python}
+df_small = df[df.language.isin(["French", "English"])]
+```
+
+
+
+
+# Preprocessing
+
+
+
+
+```{python}
+def bow_count(df, count_vectorizer):
+  if count_vectorizer == None:
+    count_vectorizer = CountVectorizer()
+    X = count_vectorizer.fit_transform(df)
+  else:
+    X = count_vectorizer.transform(df)
+  
+  return X.toarray(), count_vectorizer
+```
+
+
+
+
+Here could be bettere to use the CountVectorizer instead of TFIDF, because we  are using different languages, so the ngram could be useless if weighted usinf tfidf.
+
+Now we create the vector of labels and ngrams.
+
+
+
+```{python}
+target = df_small.language
+
+df_ngram = [my_ngram(sentence, 2) for sentence in df_small.Text]
+```
+
+
+
+
+Now we need a text made of bigrams.
+
+
+
+
+```{python}
+df_ngr = [" ".join(ngr_sentence) for ngr_sentence in df_ngram]
+df_ngr[:2]
+```
+
+
+
+
+Now we can create vectorize the dataset.
+
+
+
+
+```{python}
+df_ngr_bow, cvectorizer = bow_count(df=df_ngr, count_vectorizer=None)
+df_ngr_bow
+```
+
+
+
+
+To confirm, the length of the df is `{python} len(df_ngr_bow)`.
+
+Working with different languages, it could be the vocabulary is too big and could be useful to remove natural stopword or domain specific ones.
+
+
+
+
+```{python}
+cvectorizer.vocabulary_
+```
+
+
+
+
+# Split
+
+
+
+
+```{python}
+xtrain, xtest, ytrain, ytest = train_test_split(
+  df_ngr_bow,
+  target,
+  test_size=.2,
+  random_state=42
+)
+```
+
+
+
+
+# Model
+
+
+
+
+```{python}
+clf = MLPClassifier(
+  activation="logistic",
+  hidden_layer_sizes=(200,),
+  solver="adam",
+  tol=.005,
+  verbose=True
+)
+```
+
+
+
+
+## Fit
+
+
+
+```{python}
+clf.fit(xtrain, ytrain)
+```
+
+
+
+
+## Evaluate
+
+The accuracy is `{python} clf.score(xtest, ytest)`.
+
+## Predict
+
+
+
+```{python}
+en = "Yeah, that’s easy for your to say, you’re Mr. White. You have a cool-sounding name. Alright look, if it’s no big deal to be Mr. Pink, do you wanna trade?"
+
+fr = "Jusqu'ici tout va bien. Jusqu'ici tout va bien. Jusqu'ici tout va bien. Mais l'important, c'est pas la chute. C'est l'atterrissage."
+```
+
+
+
+
+To make a prediction, we first need to preprocess the text using the ngram and bow.
+Remember to pass the trained vectorizer, which has learned the vocabulary.
+
+
+
+```{python}
+def my_predict(text, vectorizer, n=2):
+  
+  t = [" ".join(my_ngram(text, n))]
+  pred = clf.predict(bow_count(text, vectorizer)[0]) # [0] takes the text
+  
+  return pred
+```
+
+
+
+
+English prediction `{python} my_predict(en, cvectorizer)`.
+French prediction `{python my_predict(fr, cvectorizer, 2)`.
+
+

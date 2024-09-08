@@ -1,0 +1,404 @@
+---
+author: "Simone Brazzi"
+title: "Data Preprocessing"
+date: "2024-08-15"
+format:
+  html:
+    toc: true
+    toc-title: "Table of Contents"
+    toc-depth: 3
+    number-sections: true
+    number-depth: 3
+    embed-resources: true
+    anchor-sections: true
+    smooth-scroll: true
+    highlight-style: monokai
+    code-line-numbers: true
+    code-copy: true
+    code-link: true
+    theme:
+      dark: darkly
+      light: flatly
+  ipynb: default
+format-links: [ipynb]
+engine: knitr
+execute:
+  cache: true
+  freeze: true
+---
+
+
+
+
+# Data Cleaning
+
+Pulizia di dataset testuali. Uno dei primi step è trasformare il testo in un formato **standard**: **lowercase**.
+
+Lowercase:
+
+
+
+```{python}
+"Hi, this is an example of LOWERCASE and UPPERCASE".lower()
+```
+
+
+
+
+Uppercase:
+
+
+
+```{python}
+"Hi, this is an example of LOWERCASE and UPPERCASE".upper()
+```
+
+
+
+
+Per rimuovere la punteggiatura, si utilizza la libreria `string`.
+
+
+
+
+```{python}
+import string
+```
+
+
+
+
+Con il metodo `punctuation` otteniamo la serie di caratteri che lo compongono.
+
+
+
+```{python}
+string.punctuation
+```
+
+```{python}
+sentence = "Hi,  this is an example that contains punctuation......!"
+
+for c in string.punctuation:
+  sentence = sentence.replace(c, "")
+
+sentence
+```
+
+
+
+
+Per rimuovere spazi multipli possiamo usare la libreria `regular expression`.
+
+
+
+
+```{python}
+import re
+```
+
+```{python}
+sentence = re.sub(" +", " ", sentence)
+sentence
+```
+
+
+
+
+# Stemming
+
+Lo **stemming** e la **lemmizzazione** sono attività fondamentali per standardizzare il testo. Può essere utilizzata la libreria `nltk`, sviluppata da Stanford.
+`PorterStemmer` è uno dei principali stemmer. Si passa la singola parola e ritorna lo stem.
+
+
+
+
+```{python}
+from nltk.stem import PorterStemmer
+```
+
+```{python}
+ps = PorterStemmer()
+ps.stem("civilization")
+```
+
+
+
+
+Nel caso di una frase possiamo applicare lo stemmer parola per parola e joinare i vari stem per ricostruire la frase.
+
+
+
+
+```{python}
+sentence = "Hi, this is an example of sentence for stemming activities."
+stemmed_sentence = " ".join(ps.stem(word) for word in sentence.split())
+stemmed_sentence
+```
+
+
+
+
+# Lemmatization
+
+Si può usare la libreria `spacy`. Si usa sia in ambito accademico che di produzione. Spacy è una libreria che utilizza modelli pre addestrati offerti dalla società.
+
+
+
+
+```{python}
+import spacy
+
+spacy.cli.download("en_core_web_sm")
+```
+
+
+
+
+Per usare il modello, basta caricarlo.
+
+
+
+```{python}
+nlp = spacy.load("en_core_web_sm")
+```
+
+
+
+
+Spacy prende in input un corpus/dataset/frase e restituisce un dato strutturato per cui per ogni parola restituisce tutte le informazioni di preprocessing nlp.
+
+
+
+
+```{python}
+sentence = "Hi, this is an example of sentence for stemming activities."
+doc = nlp(sentence)
+type(doc)
+
+[x for x in dir(doc)]
+```
+
+
+
+
+doc è un oggetto composto da tokens. Ogni tokens ha le informazioni relativa alla parola che abbiamo passato. Nello specifico, possiamo visualizzare text e lemma.
+
+
+
+
+```{python}
+for token in doc:
+  print(token.text, token.lemma_)
+```
+
+
+
+
+Avendo già effettuato la lemmatizzazione, possiamo vedere la stringa lemmatizzata così:
+
+
+
+```{python}
+lemmatized_sentence = " ".join(token.lemma_ for token in doc)
+lemmatized_sentence
+```
+
+
+
+
+# Stopwords
+
+
+
+
+```{python}
+import nltk
+```
+
+```{python}
+nltk.download("stopwords")
+```
+
+
+
+
+Scaricate le stopwords, si può importare il corpus delle stopwords di svariate lingue.
+
+
+
+
+```{python}
+from nltk.corpus import stopwords
+```
+
+```{python}
+en_stopwords = stopwords.words("english")
+en_stopwords[:5]
+```
+
+
+
+
+Ora possiamo ciclare sulle stopwords e rimovuere con un replace le stopwords dalla nostra frase.
+
+
+
+
+```{python}
+sentence_without_stopwords = " ".join(word for word in sentence.split() if word not in en_stopwords)
+sentence_without_stopwords
+```
+
+```{python}
+sentence
+```
+
+
+
+
+Se si vogliono aggiungere ulteriori stopwords, basta aggiugnerle alla lista o crearne una custom. Potrebbe anche servire rimuovere i numeri, se non rilevanti.
+
+
+
+
+```{python}
+import re
+```
+
+```{python}
+sentence = "This sentence contains 3 numbers: 45, 43, 89."
+
+sentence_without_numbers = re.sub("\d", " ", sentence)
+sentence_without_numbers
+```
+
+
+
+
+# Definzione del metodo `data_cleaner`
+
+Tokenizzazione: passiamo dalla frase ai singoli token che la compongono. Per eseguirla basta usare la funzione `split()`, che abbiamo visto in precedenza.
+
+
+
+
+```{python}
+sentence = "This sentence contains 3 numbers: 45, 43, 89."
+sentence.split()
+```
+
+```{python}
+import spacy
+import string
+from nltk.corpus import stopwords
+import re
+
+english_stopwords = stopwords.words("english")
+nlp = spacy.load("en_core_web_sm")
+punctuation = set(string.punctuation)
+
+def data_cleaner(sentence):
+  
+  # lowercasing
+  sentence = sentence.lower()
+  # punctuation removal
+  for c in string.punctuation:
+    sentence = sentence.replace(c, " ")
+  # lemming
+  document = nlp(sentence)
+  sentence = " ".join(token.lemma_ for token in document)
+  # stopwords
+  sentence = " ".join(word for word in sentence.split() if word not in english_stopwords)
+  # remove numbers
+  sentence = re.sub("\d", "", sentence)
+  # remove multiple whitespaces
+  sentence = re.sub(" +", " ", sentence)
+  
+  return sentence
+```
+
+```{python}
+test = "Hi, this is an example of      sentence. This SENTENCE is used for natural language processing activities!1111 42."
+
+data_cleaner(test)
+```
+
+
+
+
+# Esercitazione
+
+Load the newsgroup dataset from sklearn. It information as a dict.
+
+
+
+
+```{python}
+from sklearn.datasets import fetch_20newsgroups
+import pandas as pd
+
+newsgroups_train = fetch_20newsgroups(subset='train')
+
+newsgroups_train.keys()
+```
+
+
+
+
+Save the data and check the first observation.
+
+
+
+
+```{python}
+dataset = newsgroups_train["data"]
+dataset[0]
+```
+
+
+
+
+Apply the function.
+
+
+
+
+```{python}
+data_cleaner(dataset[0])
+```
+
+
+
+
+Il testo rimane comunque leggermente sporco. Dipende dal dataset di partenza che si decide di utilizzare. Dimensionality curse for the model has to been avoided as much as possibile.
+
+Now we can apply the function to all the dataset.
+
+
+
+
+```{python}
+dataset_cleaned = [data_cleaner(document) for document in dataset]
+```
+
+```{python}
+len(dataset_cleaned)
+```
+
+
+
+
+We can create a dataset with data and target.
+
+
+
+
+```{python}
+target = newsgroups_train["target"]
+
+pd.DataFrame(
+  {"data" : dataset_cleaned, "target" : target}
+).head()
+```
+
