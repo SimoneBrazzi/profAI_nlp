@@ -22,9 +22,6 @@ format:
   ipynb: default
 format-links: [ipynb]
 engine: knitr
-execute:
-  cache: true
-  freeze: true
 ---
 
 ```{python}
@@ -164,9 +161,9 @@ cleaned_corpus
 It is working. REMEBER! cleaning lets reduce the dimensionality, so the vectors are smaller and easier to manage for the model.
 
 ```{python}
-import pandas
+import pandas as pd
 
-df = pandas.read_csv("~/R/profAI_nlp/datasets/Lezione_1-data_cleaning/dataset_cleaned.csv")
+df = pd.read_csv("~/R/profAI_nlp/datasets/Lezione_1-data_cleaning/dataset_cleaned.csv")
 df.head()
 ```
 
@@ -174,12 +171,6 @@ We can vectorize the dataset using one of the 2 ways to weight the words. TFIDF 
 
 ```{python}
 vectorized_df = tfidfv.fit_transform(df.data)
-```
-
-This is the vocabulary created.
-
-```{python}
-tfidfv.vocabulary_
 ```
 
 It is a `dict` with word : frequency structure. We think to filter the word with a min and max frequency.
@@ -207,6 +198,3 @@ tfidfv.vocabulary_
 ```{python}
 vectorized_df.toarray()[0]
 ```
-
-
-
